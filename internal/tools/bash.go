@@ -6,6 +6,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/ylchen07/mcp-executor/internal/executor"
+	"github.com/ylchen07/mcp-executor/internal/logger"
 )
 
 type BashTool struct {
@@ -42,8 +43,11 @@ func (b *BashTool) HandleExecution(
 	ctx context.Context,
 	request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
+	logger.Debug("Bash tool execution requested")
+
 	script, err := request.RequireString("script")
 	if err != nil {
+		logger.Debug("Bash tool execution failed: missing script argument")
 		return mcp.NewToolResultError("Missing or invalid script argument"), nil
 	}
 
@@ -54,12 +58,15 @@ func (b *BashTool) HandleExecution(
 		for i, pkg := range packages {
 			packages[i] = strings.TrimSpace(pkg)
 		}
+		logger.Debug("Bash packages requested: %v", packages)
 	}
 
 	output, err := b.executor.Execute(ctx, script, packages)
 	if err != nil {
+		logger.Debug("Bash execution failed: %v", err)
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
+	logger.Debug("Bash execution completed successfully")
 	return mcp.NewToolResultText(output), nil
 }

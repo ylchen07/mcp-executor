@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/ylchen07/mcp-executor/internal/logger"
 )
 
 type ExecutorConfig struct {
@@ -41,6 +43,8 @@ func NewBashExecutor() *DockerExecutor {
 }
 
 func (d *DockerExecutor) Execute(ctx context.Context, code string, dependencies []string) (string, error) {
+	logger.Debug("Starting %s execution", d.config.ExecutorName)
+
 	cmdArgs := []string{
 		"run",
 		"--rm",
@@ -50,6 +54,7 @@ func (d *DockerExecutor) Execute(ctx context.Context, code string, dependencies 
 	shArgs := []string{}
 
 	if len(dependencies) > 0 {
+		logger.Debug("Installing dependencies: %v", dependencies)
 		shArgs = append(shArgs, d.config.InstallCmd...)
 		shArgs = append(shArgs, dependencies...)
 		shArgs = append(shArgs, "&&")
@@ -58,15 +63,20 @@ func (d *DockerExecutor) Execute(ctx context.Context, code string, dependencies 
 	shArgs = append(shArgs, d.config.ExecuteCmd...)
 	cmdArgs = append(cmdArgs, "sh", "-c", strings.Join(shArgs, " "))
 
+	logger.Verbose("Executing Docker command: docker %s", strings.Join(cmdArgs, " "))
+	logger.Debug("Code to execute:\n%s", code)
+
 	cmd := exec.CommandContext(ctx, "docker", cmdArgs...)
 	cmd.Stdin = strings.NewReader(code)
 	out, err := cmd.Output()
 	if err != nil {
+		logger.Debug("Execution failed: %v", err)
 		if exitError, ok := err.(*exec.ExitError); ok {
 			return "", fmt.Errorf("%s exited with code %d: %s", d.config.ExecutorName, exitError.ExitCode(), string(exitError.Stderr))
 		}
 		return "", fmt.Errorf("execution failed: %v", err)
 	}
 
+	logger.Debug("Execution completed successfully, output length: %d bytes", len(out))
 	return string(out), nil
 }

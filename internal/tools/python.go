@@ -6,6 +6,7 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/ylchen07/mcp-executor/internal/executor"
+	"github.com/ylchen07/mcp-executor/internal/logger"
 )
 
 type PythonTool struct {
@@ -42,20 +43,26 @@ func (p *PythonTool) HandleExecution(
 	ctx context.Context,
 	request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
+	logger.Debug("Python tool execution requested")
+
 	code, err := request.RequireString("code")
 	if err != nil {
+		logger.Debug("Python tool execution failed: missing code argument")
 		return mcp.NewToolResultError("Missing or invalid code argument"), nil
 	}
 
 	var modules []string
 	if modulesStr := request.GetString("modules", ""); modulesStr != "" {
 		modules = strings.Split(modulesStr, ",")
+		logger.Debug("Python modules requested: %v", modules)
 	}
 
 	output, err := p.executor.Execute(ctx, code, modules)
 	if err != nil {
+		logger.Debug("Python execution failed: %v", err)
 		return mcp.NewToolResultError(err.Error()), nil
 	}
 
+	logger.Debug("Python execution completed successfully")
 	return mcp.NewToolResultText(output), nil
 }

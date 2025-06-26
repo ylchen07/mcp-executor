@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/ylchen07/mcp-executor/internal/logger"
 	"github.com/ylchen07/mcp-executor/internal/server"
 )
 
@@ -35,6 +36,9 @@ The server provides two main tools:
 - execute-python: Run Python code in Docker containers with Playwright support
 - execute-bash: Run bash scripts in isolated Ubuntu containers`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Set global verbose flag
+		logger.SetVerbose(verbose)
+
 		mcpServer := server.NewMCPServer()
 
 		var err error
@@ -42,19 +46,13 @@ The server provides two main tools:
 
 		switch mode {
 		case "http":
-			if verbose {
-				fmt.Println("Starting MCP server in HTTP mode on port 8081")
-			}
+			logger.VerbosePrint("Starting MCP server in HTTP mode on port 8081")
 			err = server.RunHTTP(mcpServer)
 		case "sse":
-			if verbose {
-				fmt.Println("Starting MCP server in SSE mode on port 8080")
-			}
+			logger.VerbosePrint("Starting MCP server in SSE mode on port 8080")
 			err = server.RunSSE(mcpServer)
 		default:
-			if verbose {
-				fmt.Println("Starting MCP server in stdio mode")
-			}
+			logger.VerbosePrint("Starting MCP server in stdio mode")
 			err = server.RunStdio(mcpServer)
 		}
 
