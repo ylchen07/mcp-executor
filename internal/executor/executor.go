@@ -2,6 +2,6 @@ package executor
 
 import "context"
 
-type PythonExecutor interface {
-	Execute(ctx context.Context, code string, modules []string) (string, error)
+type Executor interface {
+	Execute(ctx context.Context, code string, dependencies []string) (string, error)
 }

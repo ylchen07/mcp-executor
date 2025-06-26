@@ -9,10 +9,10 @@ import (
 )
 
 type PythonTool struct {
-	executor executor.PythonExecutor
+	executor executor.Executor
 }
 
-func NewPythonTool(exec executor.PythonExecutor) *PythonTool {
+func NewPythonTool(exec executor.Executor) *PythonTool {
 	return &PythonTool{
 		executor: exec,
 	}

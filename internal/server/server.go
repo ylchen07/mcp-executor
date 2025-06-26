@@ -15,10 +15,14 @@ func NewMCPServer() *server.MCPServer {
 		config.ServerVersion,
 	)
 
-	dockerExecutor := executor.NewDockerExecutor()
-	pythonTool := tools.NewPythonTool(dockerExecutor)
+	pythonExecutor := executor.NewPythonExecutor()
+	pythonTool := tools.NewPythonTool(pythonExecutor)
+
+	bashExecutor := executor.NewBashExecutor()
+	bashTool := tools.NewBashTool(bashExecutor)
 
 	mcpServer.AddTool(pythonTool.CreateTool(), pythonTool.HandleExecution)
+	mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
 
 	return mcpServer
 }
