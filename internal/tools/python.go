@@ -42,13 +42,13 @@ func (p *PythonTool) HandleExecution(
 	ctx context.Context,
 	request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
-	code, ok := request.Params.Arguments["code"].(string)
-	if !ok {
+	code, err := request.RequireString("code")
+	if err != nil {
 		return mcp.NewToolResultError("Missing or invalid code argument"), nil
 	}
 
 	var modules []string
-	if modulesStr, ok := request.Params.Arguments["modules"].(string); ok && modulesStr != "" {
+	if modulesStr := request.GetString("modules", ""); modulesStr != "" {
 		modules = strings.Split(modulesStr, ",")
 	}
 

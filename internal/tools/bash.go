@@ -42,13 +42,13 @@ func (b *BashTool) HandleExecution(
 	ctx context.Context,
 	request mcp.CallToolRequest,
 ) (*mcp.CallToolResult, error) {
-	script, ok := request.Params.Arguments["script"].(string)
-	if !ok {
+	script, err := request.RequireString("script")
+	if err != nil {
 		return mcp.NewToolResultError("Missing or invalid script argument"), nil
 	}
 
 	var packages []string
-	if packagesStr, ok := request.Params.Arguments["packages"].(string); ok && packagesStr != "" {
+	if packagesStr := request.GetString("packages", ""); packagesStr != "" {
 		packages = strings.Split(packagesStr, ",")
 		// Clean up package names (trim whitespace)
 		for i, pkg := range packages {
