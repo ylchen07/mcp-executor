@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/ylchen07/mcp-python/internal/server"
+	"github.com/ylchen07/mcp-executor/internal/server"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "mcp-executor",
 	Short: "MCP server for Python and Bash execution",
-	Long: `mcp-python is an MCP (Model Context Protocol) server that provides
+	Long: `mcp-executor is an MCP (Model Context Protocol) server that provides
 both Python and Bash execution capabilities in isolated Docker containers.
 
 It supports multiple transport modes: stdio (default), SSE, and HTTP.`,
@@ -69,9 +69,9 @@ The server provides two main tools:
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
-	Long:  `Print the version number of mcp-python`,
+	Long:  `Print the version number of mcp-executor`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("mcp-python version %s\n", version)
+		fmt.Printf("mcp-executor version %s\n", version)
 	},
 }
 

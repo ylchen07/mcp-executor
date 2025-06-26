@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/ylchen07/mcp-python/internal/executor"
+	"github.com/ylchen07/mcp-executor/internal/executor"
 )
 
 type BashTool struct {

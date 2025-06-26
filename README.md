@@ -28,7 +28,7 @@ This project implements an MCP server that exposes two powerful tools: `execute-
 
    ```bash
    git clone <repository-url>
-   cd mcp-python
+   cd mcp-executor
    ```
 
 2. Install dependencies:

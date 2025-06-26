@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"github.com/mark3labs/mcp-go/server"
-	"github.com/ylchen07/mcp-python/internal/config"
-	"github.com/ylchen07/mcp-python/internal/executor"
-	"github.com/ylchen07/mcp-python/internal/tools"
+	"github.com/ylchen07/mcp-executor/internal/config"
+	"github.com/ylchen07/mcp-executor/internal/executor"
+	"github.com/ylchen07/mcp-executor/internal/tools"
 )
 
 func NewMCPServer() *server.MCPServer {

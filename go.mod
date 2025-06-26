@@ -1,4 +1,4 @@
-module github.com/ylchen07/mcp-python
+module github.com/ylchen07/mcp-executor
 
 go 1.23.3
 
