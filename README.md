@@ -1,10 +1,10 @@
 # MCP Executor
 
-An MCP (Model Context Protocol) server that provides secure Python and Bash execution in isolated Docker containers. Includes built-in Playwright support for web automation and scraping.
+An MCP (Model Context Protocol) server that provides secure Python and Bash execution in isolated Docker containers. Built with Go and the Cobra CLI framework, featuring multiple transport modes and built-in Playwright support for web automation.
 
 ## Overview
 
-This project implements an MCP server that exposes two powerful tools: `execute-python` and `execute-bash`. These tools allow safe execution of Python code and bash scripts in ephemeral Docker containers, making it ideal for data analysis, web scraping, system administration, and automation tasks.
+This project implements a robust MCP server that exposes two powerful tools: `execute-python` and `execute-bash`. These tools enable safe execution of Python code and bash scripts in ephemeral Docker containers, making it ideal for data analysis, web scraping, system administration, and automation tasks.
 
 ## Features
 
@@ -12,9 +12,11 @@ This project implements an MCP server that exposes two powerful tools: `execute-
 - 🔧 **Secure Bash Execution**: Execute shell commands and scripts in isolated Linux containers
 - 🎭 **Playwright Support**: Built-in browser automation and web scraping capabilities
 - 📦 **Dynamic Package Installation**: Install Python modules and Ubuntu packages on-the-fly
-- 🔄 **Dual Protocol Support**: Both stdio and SSE (Server-Sent Events) modes
+- 🔄 **Triple Protocol Support**: stdio, SSE (Server-Sent Events), and HTTP transport modes
 - 🧹 **Ephemeral Environment**: Each execution starts with a clean container
 - 🛡️ **Isolated Execution**: No persistence between runs for enhanced security
+- 📊 **Verbose Logging**: Optional detailed logging for debugging and monitoring
+- 🚀 **CLI Framework**: Built with Cobra for robust command-line interface
 
 ## Prerequisites
 
@@ -27,7 +29,7 @@ This project implements an MCP server that exposes two powerful tools: `execute-
 1. Clone the repository:
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/ylchen07/mcp-executor.git
    cd mcp-executor
    ```
 
@@ -45,11 +47,15 @@ This project implements an MCP server that exposes two powerful tools: `execute-
 
 ## Usage
 
-### Stdio Mode (Default)
+The server supports three transport modes and provides a clean CLI interface:
+
+### Default Behavior (Stdio Mode)
 
 Run the MCP server in stdio mode for direct integration with MCP clients:
 
 ```bash
+./mcp-executor
+# or
 go run main.go
 ```
 
@@ -58,10 +64,34 @@ go run main.go
 Run the server with HTTP Server-Sent Events support:
 
 ```bash
-go run main.go --sse
+./mcp-executor serve --mode sse
+# or
+go run main.go serve --mode sse
 ```
 
 The SSE server will start on `http://localhost:8080`.
+
+### HTTP Mode
+
+Run the server with streamable HTTP transport:
+
+```bash
+./mcp-executor serve --mode http
+# or
+go run main.go serve --mode http
+```
+
+The HTTP server will start on `http://localhost:8081`.
+
+### Verbose Output
+
+Enable detailed logging for debugging:
+
+```bash
+./mcp-executor serve --verbose
+# or
+./mcp-executor serve -v --mode sse
+```
 
 ## Tools
 
@@ -143,32 +173,78 @@ The server provides two MCP tools:
 
 ## Architecture
 
-The project follows a clean, modular architecture:
+The project follows a clean, modular architecture built with the Cobra CLI framework:
+
+```mermaid
+graph TB
+    subgraph "CLI Layer"
+        A[main.go] --> B[cmd/root.go]
+        B --> C[cmd/serve.go]
+        C --> D[cmd/version.go]
+    end
+
+    subgraph "Server Layer"
+        C --> E[internal/server/server.go]
+        E --> F[MCP Server Instance]
+    end
+
+    subgraph "Tools Layer"
+        F --> G[internal/tools/python.go]
+        F --> H[internal/tools/bash.go]
+    end
+
+    subgraph "Execution Layer"
+        G --> I[internal/executor/docker.go]
+        H --> I
+        I --> J[Python Container<br/>Playwright Image]
+        I --> K[Bash Container<br/>Ubuntu 22.04]
+    end
+
+    subgraph "Support Layer"
+        E --> L[internal/config/config.go]
+        E --> M[internal/logger/logger.go]
+        C --> M
+    end
+
+    subgraph "Transport Modes"
+        F --> N[Stdio Transport]
+        F --> O[SSE Transport<br/>:8080]
+        F --> P[HTTP Transport<br/>:8081]
+    end
+```
+
+### Directory Structure
 
 ```
-├── main.go                 # Entry point
+├── main.go                    # Application entry point
 ├── cmd/
-│   └── execute.go         # CLI command handling
+│   ├── root.go               # Root command and CLI setup
+│   ├── serve.go              # Serve command implementation
+│   └── version.go            # Version command
 ├── internal/
 │   ├── config/
-│   │   └── config.go      # Configuration constants
+│   │   └── config.go         # Configuration constants
 │   ├── executor/
-│   │   ├── executor.go    # Executor interface
-│   │   └── docker.go      # Docker-based executor implementation
+│   │   ├── executor.go       # Executor interface definition
+│   │   └── docker.go         # Docker-based executor implementation
+│   ├── logger/
+│   │   └── logger.go         # Logging utilities and verbose output
 │   ├── server/
-│   │   └── server.go      # MCP server setup and runners
+│   │   └── server.go         # MCP server setup and transport runners
 │   └── tools/
-│       ├── python.go      # Python execution tool implementation
-│       └── bash.go        # Bash execution tool implementation
+│       ├── python.go         # Python execution tool implementation
+│       └── bash.go           # Bash execution tool implementation
 ```
 
 ### Key Components
 
-- **MCP Server**: Built using `github.com/mark3labs/mcp-go` library
-- **Docker Executor**: Handles Python and Bash execution in containers
-- **Python Tool**: MCP tool implementation for Python code execution
-- **Bash Tool**: MCP tool implementation for bash script execution
-- **Configuration**: Centralized constants and settings
+- **CLI Framework**: Built using `github.com/spf13/cobra` for robust command-line interface
+- **MCP Server**: Built using `github.com/mark3labs/mcp-go` library with multiple transport support
+- **Docker Executor**: Handles Python and Bash execution in isolated containers
+- **Python Tool**: MCP tool implementation for Python code execution with Playwright support
+- **Bash Tool**: MCP tool implementation for bash script execution in Ubuntu containers
+- **Logger**: Centralized logging with verbose mode support
+- **Configuration**: Centralized constants and settings for all transport modes
 
 ## Configuration
 
@@ -179,8 +255,10 @@ Current configuration (in `internal/config/config.go`):
 - **Docker Images**:
   - Python: `mcr.microsoft.com/playwright/python:v1.53.0-noble`
   - Bash: `ubuntu:22.04`
-- **SSE Port**: `:8080`
-- **SSE Host**: `http://localhost:8080`
+- **Transport Ports**:
+  - SSE Port: `:8080` (`http://localhost:8080`)
+  - HTTP Port: `:8081` (`http://localhost:8081`)
+  - Stdio: Standard input/output (default)
 
 ## Development
 
@@ -211,8 +289,11 @@ go mod tidy
 
 ## Dependencies
 
-- `github.com/mark3labs/mcp-go v0.8.2` - MCP protocol implementation
+- `github.com/mark3labs/mcp-go v0.32.0` - MCP protocol implementation
+- `github.com/spf13/cobra v1.9.1` - CLI framework
 - `github.com/google/uuid v1.6.0` - UUID generation (indirect dependency)
+- `github.com/spf13/cast v1.9.2` - Type conversion utilities (indirect)
+- `github.com/spf13/pflag v1.0.6` - Command-line flag parsing (indirect)
 
 ## Docker Image
 
