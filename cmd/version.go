@@ -1,3 +1,5 @@
+// Package cmd provides the command-line interface using Cobra framework
+// for the mcp-executor application with support for multiple transport modes.
 package cmd
 
 import (

@@ -1,3 +1,5 @@
+// Package config provides centralized configuration constants
+// for server identity, ports, and transport endpoints.
 package config
 
 const (

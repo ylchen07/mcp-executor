@@ -1,3 +1,5 @@
+// Package executor implements Docker-based code execution for Python and Bash
+// with support for dynamic dependency installation and isolated environments.
 package executor
 
 import (

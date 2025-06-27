@@ -1,3 +1,5 @@
+// Package logger provides centralized logging functionality with support
+// for verbose/debug modes and different log levels.
 package logger
 
 import (

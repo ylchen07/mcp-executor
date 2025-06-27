@@ -1,3 +1,5 @@
+// Package server provides MCP server initialization and transport management
+// for running the mcp-executor with stdio, SSE, and HTTP transport modes.
 package server
 
 import (

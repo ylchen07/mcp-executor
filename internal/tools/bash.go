@@ -1,3 +1,5 @@
+// Package tools provides MCP tool implementations for executing Python and Bash code
+// in isolated Docker containers with support for dynamic module/package installation.
 package tools
 
 import (
