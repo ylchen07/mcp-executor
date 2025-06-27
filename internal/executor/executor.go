@@ -5,5 +5,5 @@ package executor
 import "context"
 
 type Executor interface {
-	Execute(ctx context.Context, code string, dependencies []string) (string, error)
+	Execute(ctx context.Context, code string, dependencies []string, envVars map[string]string) (string, error)
 }

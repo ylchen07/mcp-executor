@@ -44,15 +44,21 @@ func NewBashExecutor() *DockerExecutor {
 	}
 }
 
-func (d *DockerExecutor) Execute(ctx context.Context, code string, dependencies []string) (string, error) {
+func (d *DockerExecutor) Execute(ctx context.Context, code string, dependencies []string, envVars map[string]string) (string, error) {
 	logger.Debug("Starting %s execution", d.config.ExecutorName)
 
 	cmdArgs := []string{
 		"run",
 		"--rm",
 		"-i",
-		d.config.Image,
 	}
+
+	// Add environment variables
+	for key, value := range envVars {
+		cmdArgs = append(cmdArgs, "-e", key+"="+value)
+	}
+
+	cmdArgs = append(cmdArgs, d.config.Image)
 	shArgs := []string{}
 
 	if len(dependencies) > 0 {

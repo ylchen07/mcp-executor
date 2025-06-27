@@ -38,6 +38,12 @@ func (b *BashTool) CreateTool() mcp.Tool {
 				"Comma-separated list of Ubuntu packages your script requires. If your script requires external tools you MUST pass them here! These will be installed automatically using apt-get.",
 			),
 		),
+		mcp.WithString(
+			"env",
+			mcp.Description(
+				"Comma-separated list of environment variables in KEY=VALUE format (e.g., 'API_KEY=secret,DEBUG=true'). These will be available to your bash script.",
+			),
+		),
 	)
 }
 
@@ -63,7 +69,22 @@ func (b *BashTool) HandleExecution(
 		logger.Debug("Bash packages requested: %v", packages)
 	}
 
-	output, err := b.executor.Execute(ctx, script, packages)
+	// Parse environment variables
+	envVars := make(map[string]string)
+	if envStr := request.GetString("env", ""); envStr != "" {
+		envPairs := strings.Split(envStr, ",")
+		for _, pair := range envPairs {
+			pair = strings.TrimSpace(pair)
+			if equalIndex := strings.Index(pair, "="); equalIndex > 0 {
+				key := strings.TrimSpace(pair[:equalIndex])
+				value := strings.TrimSpace(pair[equalIndex+1:])
+				envVars[key] = value
+			}
+		}
+		logger.Debug("Bash environment variables: %v", envVars)
+	}
+
+	output, err := b.executor.Execute(ctx, script, packages, envVars)
 	if err != nil {
 		logger.Debug("Bash execution failed: %v", err)
 		return mcp.NewToolResultError(err.Error()), nil

@@ -38,6 +38,12 @@ func (p *PythonTool) CreateTool() mcp.Tool {
 				"Comma-separated list of Python modules your code requires. If your code requires external modules you MUST pass them here! These will installed automatically.",
 			),
 		),
+		mcp.WithString(
+			"env",
+			mcp.Description(
+				"Comma-separated list of environment variables in KEY=VALUE format (e.g., 'API_KEY=secret,DEBUG=true'). These will be available to your Python code.",
+			),
+		),
 	)
 }
 
@@ -59,7 +65,22 @@ func (p *PythonTool) HandleExecution(
 		logger.Debug("Python modules requested: %v", modules)
 	}
 
-	output, err := p.executor.Execute(ctx, code, modules)
+	// Parse environment variables
+	envVars := make(map[string]string)
+	if envStr := request.GetString("env", ""); envStr != "" {
+		envPairs := strings.Split(envStr, ",")
+		for _, pair := range envPairs {
+			pair = strings.TrimSpace(pair)
+			if equalIndex := strings.Index(pair, "="); equalIndex > 0 {
+				key := strings.TrimSpace(pair[:equalIndex])
+				value := strings.TrimSpace(pair[equalIndex+1:])
+				envVars[key] = value
+			}
+		}
+		logger.Debug("Python environment variables: %v", envVars)
+	}
+
+	output, err := p.executor.Execute(ctx, code, modules, envVars)
 	if err != nil {
 		logger.Debug("Python execution failed: %v", err)
 		return mcp.NewToolResultError(err.Error()), nil
