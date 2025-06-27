@@ -53,4 +53,3 @@ func init() {
 	// Add serve command to root
 	rootCmd.AddCommand(serveCmd)
 }
-

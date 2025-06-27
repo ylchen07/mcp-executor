@@ -20,4 +20,3 @@ func init() {
 	// Add version command to root
 	rootCmd.AddCommand(versionCmd)
 }
-
