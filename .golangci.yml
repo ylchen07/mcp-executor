@@ -1,0 +1,26 @@
+version: "2"
+
+output:
+  formats:
+    text:
+      print-linter-name: true
+      print-issued-lines: true
+      colors: true
+
+linters:
+  settings:
+    testpackage:
+      # Regexp pattern to skip files.
+      # Default: "(export|internal)_test\\.go"
+      skip-regexp: (export|internal)_test\.go
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+run:
+  timeout: 2m
+
+issues:
+  fix: true
