@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - automation
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - automation
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
