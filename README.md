@@ -101,10 +101,11 @@ The server provides two MCP tools:
 
 ### Parameters
 
-| Parameter | Type   | Required | Description                                       |
-| --------- | ------ | -------- | ------------------------------------------------- |
-| `code`    | string | Yes      | Python code to execute                            |
-| `modules` | string | No       | Comma-separated list of Python modules to install |
+| Parameter | Type   | Required | Description                                                 |
+| --------- | ------ | -------- | ----------------------------------------------------------- |
+| `code`    | string | Yes      | Python code to execute                                      |
+| `modules` | string | No       | Comma-separated list of Python modules to install           |
+| `env`     | string | No       | Comma-separated KEY=VALUE pairs injected into the container |
 
 ### Example Usage
 
@@ -138,10 +139,11 @@ The server provides two MCP tools:
 
 #### Parameters
 
-| Parameter  | Type   | Required | Description                                        |
-| ---------- | ------ | -------- | -------------------------------------------------- |
-| `script`   | string | Yes      | Bash script or commands to execute                 |
-| `packages` | string | No       | Comma-separated list of Ubuntu packages to install |
+| Parameter  | Type   | Required | Description                                             |
+| ---------- | ------ | -------- | ------------------------------------------------------- |
+| `script`   | string | Yes      | Bash script or commands to execute                      |
+| `packages` | string | No       | Comma-separated list of Ubuntu packages to install      |
+| `env`      | string | No       | Comma-separated KEY=VALUE pairs available to the script |
 
 #### Example Usage
 
@@ -284,7 +286,7 @@ go mod tidy
 
 - **Isolated Execution**: All Python and Bash code runs in separate Docker containers
 - **No Persistence**: Containers are removed after each execution (`--rm` flag)
-- **Limited Network**: Containers have minimal network access
+- **Default Networking**: Containers run with Docker's default bridge network; add restrictions when deploying in hardened environments
 - **Ephemeral State**: No data persists between executions
 
 ## Dependencies
