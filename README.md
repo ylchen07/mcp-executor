@@ -1,28 +1,37 @@
 # MCP Executor
 
-An MCP (Model Context Protocol) server that provides secure Python and Bash execution in isolated Docker containers. Built with Go and the Cobra CLI framework, featuring multiple transport modes and built-in Playwright support for web automation.
+An MCP (Model Context Protocol) server that provides Python and Bash execution in either subprocess or isolated Docker environments. Built with Go and the Cobra CLI framework, featuring multiple transport modes, flexible execution modes, and built-in Playwright support for web automation.
 
 ## Overview
 
-This project implements a robust MCP server that exposes two powerful tools: `execute-python` and `execute-bash`. These tools enable safe execution of Python code and bash scripts in ephemeral Docker containers, making it ideal for data analysis, web scraping, system administration, and automation tasks.
+This project implements a robust MCP server that exposes two powerful tools: `execute-python` and `execute-bash`. These tools enable execution of Python code and bash scripts in either:
+
+- **Subprocess mode** (default): Fast execution directly on the host machine
+- **Docker mode**: Isolated execution in ephemeral Docker containers
+
+Perfect for data analysis, web scraping, system administration, and automation tasks with the flexibility to choose between speed (subprocess) and isolation (Docker).
 
 ## Features
 
-- 🐍 **Secure Python Execution**: Run Python code in isolated Docker containers
-- 🔧 **Secure Bash Execution**: Execute shell commands and scripts in isolated Linux containers
-- 🎭 **Playwright Support**: Built-in browser automation and web scraping capabilities
-- 📦 **Dynamic Package Installation**: Install Python modules and Ubuntu packages on-the-fly
+- ⚡ **Dual Execution Modes**: Choose between subprocess (fast) or Docker (isolated) execution
+- 🐍 **Python Execution**: Run Python code with pip package installation support
+- 🔧 **Bash Execution**: Execute shell commands and scripts
+- 🎭 **Playwright Support**: Built-in browser automation in Docker mode
+- 📦 **Dynamic Package Installation**: Install Python modules (subprocess/Docker) and Ubuntu packages (Docker only)
 - 🔄 **Triple Protocol Support**: stdio, SSE (Server-Sent Events), and HTTP transport modes
-- 🧹 **Ephemeral Environment**: Each execution starts with a clean container
-- 🛡️ **Isolated Execution**: No persistence between runs for enhanced security
+- 🧹 **Clean Execution**: Subprocess mode or ephemeral Docker containers
+- 🛡️ **Flexible Security**: Balance between speed (subprocess) and isolation (Docker)
 - 📊 **Verbose Logging**: Optional detailed logging for debugging and monitoring
 - 🚀 **CLI Framework**: Built with Cobra for robust command-line interface
+- 🧪 **Comprehensive Testing**: Full test coverage with make targets
 
 ## Prerequisites
 
 - **Go 1.23.3+**: Required to build and run the server
-- **Docker**: Must be installed and running for Python code execution
-- **Internet Connection**: Required for pulling Docker images and installing Python modules
+- **Python 3**: Required for subprocess mode (default)
+- **Bash**: Required for bash subprocess execution (usually pre-installed)
+- **Docker** (optional): Only required for Docker execution mode (`--execution-mode docker`)
+- **Internet Connection**: Required for installing dependencies and pulling Docker images (Docker mode)
 
 ## Installation
 
@@ -36,68 +45,107 @@ This project implements a robust MCP server that exposes two powerful tools: `ex
 2. Install dependencies:
 
    ```bash
-   go mod tidy
+   make deps
    ```
 
 3. Build the project:
 
    ```bash
-   go build
+   make build
+   ```
+
+4. (Optional) Run tests:
+
+   ```bash
+   make test
    ```
 
 ## Usage
 
-The server supports three transport modes and provides a clean CLI interface:
+The server supports three transport modes and two execution modes. Use `make help` to see all available commands.
 
-### Default Behavior (Stdio Mode)
+### Default Behavior (Stdio + Subprocess Mode)
 
-Run the MCP server in stdio mode for direct integration with MCP clients:
+Run the MCP server in stdio mode with subprocess execution (fastest, runs on host):
 
 ```bash
-./mcp-executor
+./bin/mcp-executor
 # or
-go run main.go
+make run
 ```
 
-### SSE Mode
+### Execution Modes
+
+#### Subprocess Mode (Default - Fast)
+
+Code runs directly on host machine:
+
+```bash
+./bin/mcp-executor serve
+# or explicitly specify
+./bin/mcp-executor serve --execution-mode subprocess
+```
+
+#### Docker Mode (Isolated)
+
+Code runs in isolated Docker containers:
+
+```bash
+./bin/mcp-executor serve --execution-mode docker
+# Short flag
+./bin/mcp-executor serve -e docker
+```
+
+### Transport Modes
+
+#### SSE Mode
 
 Run the server with HTTP Server-Sent Events support:
 
 ```bash
-./mcp-executor serve --mode sse
-# or
-go run main.go serve --mode sse
+./bin/mcp-executor serve --mode sse
+# With Docker execution
+./bin/mcp-executor serve --mode sse --execution-mode docker
 ```
 
 The SSE server will start on `http://localhost:8080`.
 
-### HTTP Mode
+#### HTTP Mode
 
 Run the server with streamable HTTP transport:
 
 ```bash
-./mcp-executor serve --mode http
-# or
-go run main.go serve --mode http
+./bin/mcp-executor serve --mode http
+# With subprocess execution (default)
+./bin/mcp-executor serve --mode http --execution-mode subprocess
 ```
 
 The HTTP server will start on `http://localhost:8081`.
 
-### Verbose Output
+### Combined Options
 
-Enable detailed logging for debugging:
+Combine transport and execution modes with verbose logging:
 
 ```bash
-./mcp-executor serve --verbose
-# or
-./mcp-executor serve -v --mode sse
+# SSE transport + Docker execution + verbose logging
+./bin/mcp-executor serve -m sse -e docker -v
+
+# HTTP transport + subprocess execution + verbose
+./bin/mcp-executor serve --mode http --execution-mode subprocess --verbose
 ```
 
 ## Tools
 
-The server provides two MCP tools:
+The server provides two MCP tools that work in both subprocess and Docker execution modes:
 
 ### Tool: execute-python
+
+Executes Python code in either subprocess (default) or Docker container based on server's `--execution-mode` setting.
+
+**Execution Mode Differences:**
+
+- **Subprocess**: Uses host's `python3`, installs packages with `pip install --user`
+- **Docker**: Uses Playwright Python image, includes browser automation support
 
 ### Parameters
 
@@ -136,6 +184,13 @@ The server provides two MCP tools:
 ```
 
 ### Tool: execute-bash
+
+Executes bash scripts in either subprocess (default) or Docker container based on server's `--execution-mode` setting.
+
+**Execution Mode Differences:**
+
+- **Subprocess**: Uses host's `bash`, package installation disabled for security
+- **Docker**: Uses Ubuntu 22.04 container, supports `apt-get` package installation
 
 #### Parameters
 
@@ -196,22 +251,25 @@ graph TB
     end
 
     subgraph "Execution Layer"
-        G --> I[internal/executor/docker.go]
+        G --> I[internal/executor/subprocess.go<br/>Default]
+        G --> I2[internal/executor/docker.go<br/>Optional]
         H --> I
-        I --> J[Python Container<br/>Playwright Image]
-        I --> K[Bash Container<br/>Ubuntu 22.04]
+        H --> I2
+        I --> J[Python/Bash Subprocess<br/>Host Machine]
+        I2 --> K[Python Container<br/>Playwright Image]
+        I2 --> L[Bash Container<br/>Ubuntu 22.04]
     end
 
     subgraph "Support Layer"
-        E --> L[internal/config/config.go]
-        E --> M[internal/logger/logger.go]
-        C --> M
+        E --> M[internal/config/config.go]
+        E --> N[internal/logger/logger.go]
+        C --> N
     end
 
     subgraph "Transport Modes"
-        F --> N[Stdio Transport]
-        F --> O[SSE Transport<br/>:8080]
-        F --> P[HTTP Transport<br/>:8081]
+        F --> O[Stdio Transport]
+        F --> P[SSE Transport<br/>:8080]
+        F --> Q[HTTP Transport<br/>:8081]
     end
 ```
 
@@ -219,20 +277,24 @@ graph TB
 
 ```
 ├── main.go                    # Application entry point
+├── Makefile                   # Build, test, and development commands
+├── .gitignore                 # Git ignore rules
 ├── cmd/
 │   ├── root.go               # Root command and CLI setup
-│   ├── serve.go              # Serve command implementation
+│   ├── serve.go              # Serve command with execution-mode flag
 │   └── version.go            # Version command
 ├── internal/
 │   ├── config/
 │   │   └── config.go         # Configuration constants
 │   ├── executor/
 │   │   ├── executor.go       # Executor interface definition
-│   │   └── docker.go         # Docker-based executor implementation
+│   │   ├── subprocess.go     # Subprocess executor (default)
+│   │   ├── subprocess_test.go # Subprocess executor tests
+│   │   └── docker.go         # Docker-based executor (optional)
 │   ├── logger/
 │   │   └── logger.go         # Logging utilities and verbose output
 │   ├── server/
-│   │   └── server.go         # MCP server setup and transport runners
+│   │   └── server.go         # MCP server setup with executor injection
 │   └── tools/
 │       ├── python.go         # Python execution tool implementation
 │       └── bash.go           # Bash execution tool implementation
@@ -242,52 +304,124 @@ graph TB
 
 - **CLI Framework**: Built using `github.com/spf13/cobra` for robust command-line interface
 - **MCP Server**: Built using `github.com/mark3labs/mcp-go` library with multiple transport support
-- **Docker Executor**: Handles Python and Bash execution in isolated containers
-- **Python Tool**: MCP tool implementation for Python code execution with Playwright support
-- **Bash Tool**: MCP tool implementation for bash script execution in Ubuntu containers
+- **Executor Interface**: Abstraction for different execution strategies (subprocess, Docker)
+- **Subprocess Executor**: Default executor running code directly on host machine
+- **Docker Executor**: Optional executor for isolated container execution
+- **Dependency Injection**: Server selects executors based on `--execution-mode` flag
+- **Python Tool**: MCP tool implementation working with any executor
+- **Bash Tool**: MCP tool implementation working with any executor
 - **Logger**: Centralized logging with verbose mode support
-- **Configuration**: Centralized constants and settings for all transport modes
+- **Configuration**: Centralized constants and settings
+- **Makefile**: Comprehensive build, test, and development targets
 
 ## Configuration
 
-Current configuration (in `internal/config/config.go`):
+### Server Configuration (`internal/config/config.go`)
 
 - **Server Name**: `mcp-executor`
 - **Server Version**: `1.0.0`
-- **Docker Images**:
-  - Python: `mcr.microsoft.com/playwright/python:v1.53.0-noble`
-  - Bash: `ubuntu:22.04`
 - **Transport Ports**:
   - SSE Port: `:8080` (`http://localhost:8080`)
   - HTTP Port: `:8081` (`http://localhost:8081`)
   - Stdio: Standard input/output (default)
 
+### Execution Modes
+
+#### Subprocess Mode (Default)
+
+- **Python Binary**: `python3`
+- **Bash Binary**: `bash`
+- **Python Packages**: Installed via `pip install --user`
+- **Bash Packages**: Not supported (must be pre-installed on host)
+- **Environment**: Inherits from host + custom variables
+
+#### Docker Mode (Optional)
+
+- **Python Image**: `mcr.microsoft.com/playwright/python:v1.53.0-noble`
+- **Bash Image**: `ubuntu:22.04`
+- **Python Packages**: Installed via `pip install` in container
+- **Bash Packages**: Installed via `apt-get install` in container
+- **Environment**: Isolated container environment + custom variables
+
 ## Development
+
+All development tasks are managed through the Makefile for consistency and ease of use.
+
+### Available Make Targets
+
+```bash
+make help              # Show all available commands
+make build             # Build the binary to bin/mcp-executor
+make test              # Run tests with verbose output (no cache)
+make test-coverage     # Run tests with coverage report
+make fmt               # Format Go code
+make lint              # Run golangci-lint
+make deps              # Tidy Go dependencies
+make run               # Run the application
+make clean             # Remove build artifacts and cache
+```
 
 ### Building
 
 ```bash
-go build
+make build
 ```
 
 ### Running Tests
 
 ```bash
-go test ./...
+# Run all tests with verbose output
+make test
+
+# Generate coverage report
+make test-coverage
+# Opens coverage/coverage.html
 ```
 
-### Module Management
+### Code Quality
 
 ```bash
-go mod tidy
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Manage dependencies
+make deps
 ```
 
 ## Security Considerations
 
-- **Isolated Execution**: All Python and Bash code runs in separate Docker containers
+### Subprocess Mode (Default)
+
+⚠️ **Security Warning**: Code runs directly on the host machine with user permissions
+
+- **No Isolation**: Code has access to the host filesystem and environment
+- **User Permissions**: Runs with the same permissions as the server process
+- **Package Persistence**: Python packages installed via pip persist in user's cache
+- **Bash Limitations**: System package installation disabled for safety
+- **Recommendation**: Only use for trusted code or development environments
+
+### Docker Mode
+
+✅ **Enhanced Security**: Full container isolation
+
+- **Isolated Execution**: Code runs in ephemeral Docker containers
 - **No Persistence**: Containers are removed after each execution (`--rm` flag)
-- **Default Networking**: Containers run with Docker's default bridge network; add restrictions when deploying in hardened environments
+- **Default Networking**: Containers run with Docker's default bridge network
 - **Ephemeral State**: No data persists between executions
+- **Recommendation**: Use for untrusted code or production deployments
+
+### Choosing the Right Mode
+
+| Use Case            | Recommended Mode | Reason                             |
+| ------------------- | ---------------- | ---------------------------------- |
+| Development/Testing | Subprocess       | Faster execution, easier debugging |
+| Trusted Scripts     | Subprocess       | No Docker overhead                 |
+| Untrusted Code      | Docker           | Full isolation required            |
+| Production          | Docker           | Enhanced security and consistency  |
+| CI/CD Pipelines     | Either           | Depends on trust level             |
 
 ## Dependencies
 
@@ -297,28 +431,45 @@ go mod tidy
 - `github.com/spf13/cast v1.9.2` - Type conversion utilities (indirect)
 - `github.com/spf13/pflag v1.0.6` - Command-line flag parsing (indirect)
 
-## Docker Image
+## Docker Images (Docker Mode Only)
 
-Uses two Docker images for different execution environments:
+When using `--execution-mode docker`, the following Docker images are used:
 
 **Python Execution:**
 
 - **Image**: `mcr.microsoft.com/playwright/python:v1.53.0-noble`
 - **Includes**: Python 3.x, Playwright, and common browser binaries
 - **OS**: Ubuntu Noble (24.04 LTS)
+- **Use Case**: Web scraping, browser automation, complex Python tasks
 
 **Bash Execution:**
 
 - **Image**: `ubuntu:22.04`
 - **Includes**: Standard Ubuntu utilities and package manager
 - **OS**: Ubuntu 22.04 LTS
+- **Use Case**: System administration, package installation, isolated bash scripts
 
 ## Limitations
 
-- **No State Persistence**: Variables and installed modules don't persist between executions
+### Subprocess Mode
+
+- **No Isolation**: Code runs on host with full filesystem access
+- **Package Persistence**: Python packages persist in user's pip cache (not truly ephemeral)
+- **No Bash Packages**: Cannot install system packages for security reasons
+- **Security Risk**: Untrusted code can potentially harm the host system
+
+### Docker Mode
+
 - **Docker Dependency**: Requires Docker to be running
-- **Output Only**: Only stdout/stderr is returned; file system changes are not accessible
+- **Slower Performance**: Container startup overhead compared to subprocess
+- **Image Size**: Large Docker images (Playwright image is ~1.5GB)
 - **Resource Limits**: Subject to Docker container resource constraints
+
+### Both Modes
+
+- **Output Only**: Only stdout/stderr is returned; file system changes are not accessible
+- **No State Persistence**: Variables don't persist between executions (except pip packages in subprocess mode)
+- **Single Execution**: Each tool call is independent and isolated
 
 ## Contributing
 
