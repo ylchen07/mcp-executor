@@ -15,16 +15,21 @@ import (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start the MCP server",
-	Long: `Start the MCP server with the specified transport mode.
+	Long: `Start the MCP server with the specified transport mode and execution mode.
 
 The server provides two main tools:
-- execute-python: Run Python code in Docker containers with Playwright support
-- execute-bash: Run bash scripts in isolated Ubuntu containers`,
+- execute-python: Run Python code (subprocess mode by default, Docker optional)
+- execute-bash: Run bash scripts (subprocess mode by default, Docker optional)
+
+Execution modes:
+- subprocess: Run code directly on host (default, faster, less isolated)
+- docker: Run code in Docker containers (slower, fully isolated)`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Set global verbose flag
 		logger.SetVerbose(verbose)
 
-		mcpServer := server.NewMCPServer()
+		executionMode, _ := cmd.Flags().GetString("execution-mode")
+		mcpServer := server.NewMCPServer(executionMode)
 
 		var err error
 		mode, _ := cmd.Flags().GetString("mode")
@@ -51,6 +56,7 @@ The server provides two main tools:
 func init() {
 	// Serve command flags
 	serveCmd.Flags().StringP("mode", "m", "stdio", "Transport mode: stdio, sse, or http")
+	serveCmd.Flags().StringP("execution-mode", "e", "subprocess", "Execution mode: subprocess or docker")
 
 	// Add serve command to root
 	rootCmd.AddCommand(serveCmd)

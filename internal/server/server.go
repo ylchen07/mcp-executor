@@ -10,19 +10,36 @@ import (
 	"github.com/ylchen07/mcp-executor/internal/tools"
 )
 
-func NewMCPServer() *server.MCPServer {
-	logger.Debug("Creating new MCP server")
+func NewMCPServer(executionMode string) *server.MCPServer {
+	logger.Debug("Creating new MCP server with execution mode: %s", executionMode)
 	mcpServer := server.NewMCPServer(
 		config.ServerName,
 		config.ServerVersion,
 	)
 
-	logger.Debug("Initializing Python executor and tool")
-	pythonExecutor := executor.NewPythonExecutor()
+	// Create executors based on execution mode
+	var pythonExecutor executor.Executor
+	var bashExecutor executor.Executor
+
+	switch executionMode {
+	case "docker":
+		logger.Debug("Using Docker executors")
+		pythonExecutor = executor.NewPythonExecutor()
+		bashExecutor = executor.NewBashExecutor()
+	case "subprocess":
+		logger.Debug("Using subprocess executors")
+		pythonExecutor = executor.NewSubprocessPythonExecutor()
+		bashExecutor = executor.NewSubprocessBashExecutor()
+	default:
+		logger.Debug("Unknown execution mode '%s', defaulting to subprocess", executionMode)
+		pythonExecutor = executor.NewSubprocessPythonExecutor()
+		bashExecutor = executor.NewSubprocessBashExecutor()
+	}
+
+	logger.Debug("Initializing Python tool with %T", pythonExecutor)
 	pythonTool := tools.NewPythonTool(pythonExecutor)
 
-	logger.Debug("Initializing Bash executor and tool")
-	bashExecutor := executor.NewBashExecutor()
+	logger.Debug("Initializing Bash tool with %T", bashExecutor)
 	bashTool := tools.NewBashTool(bashExecutor)
 
 	logger.Debug("Registering tools with MCP server")
