@@ -26,7 +26,7 @@ func NewSubprocessPythonExecutor() *SubprocessExecutor {
 	return &SubprocessExecutor{
 		config: SubprocessConfig{
 			Binary:       "python3",
-			InstallCmd:   []string{"pip", "install", "--user"},
+			InstallCmd:   nil, // No pip installation in subprocess mode for security
 			ExecutorName: "python-subprocess",
 		},
 	}

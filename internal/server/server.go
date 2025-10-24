@@ -17,34 +17,48 @@ func NewMCPServer(executionMode string) *server.MCPServer {
 		config.ServerVersion,
 	)
 
-	// Create executors based on execution mode
-	var pythonExecutor executor.Executor
-	var bashExecutor executor.Executor
-
 	switch executionMode {
 	case "docker":
-		logger.Debug("Using Docker executors")
-		pythonExecutor = executor.NewPythonExecutor()
-		bashExecutor = executor.NewBashExecutor()
+		logger.Debug("Using Docker executors with full tool capabilities")
+		pythonExecutor := executor.NewPythonExecutor()
+		bashExecutor := executor.NewBashExecutor()
+
+		logger.Debug("Initializing Docker Python tool with module installation support")
+		pythonTool := tools.NewPythonTool(pythonExecutor)
+
+		logger.Debug("Initializing Docker Bash tool with package installation support")
+		bashTool := tools.NewBashTool(bashExecutor)
+
+		logger.Debug("Registering Docker tools with MCP server")
+		mcpServer.AddTool(pythonTool.CreateTool(), pythonTool.HandleExecution)
+		mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
+
 	case "subprocess":
-		logger.Debug("Using subprocess executors")
-		pythonExecutor = executor.NewSubprocessPythonExecutor()
-		bashExecutor = executor.NewSubprocessBashExecutor()
+		logger.Debug("Using subprocess executors (no dependency installation)")
+		pythonExecutor := executor.NewSubprocessPythonExecutor()
+		bashExecutor := executor.NewSubprocessBashExecutor()
+
+		logger.Debug("Initializing subprocess Python tool (no module installation)")
+		pythonTool := tools.NewSubprocessPythonTool(pythonExecutor)
+
+		logger.Debug("Initializing subprocess Bash tool (no package installation)")
+		bashTool := tools.NewSubprocessBashTool(bashExecutor)
+
+		logger.Debug("Registering subprocess tools with MCP server")
+		mcpServer.AddTool(pythonTool.CreateTool(), pythonTool.HandleExecution)
+		mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
+
 	default:
 		logger.Debug("Unknown execution mode '%s', defaulting to subprocess", executionMode)
-		pythonExecutor = executor.NewSubprocessPythonExecutor()
-		bashExecutor = executor.NewSubprocessBashExecutor()
+		pythonExecutor := executor.NewSubprocessPythonExecutor()
+		bashExecutor := executor.NewSubprocessBashExecutor()
+
+		pythonTool := tools.NewSubprocessPythonTool(pythonExecutor)
+		bashTool := tools.NewSubprocessBashTool(bashExecutor)
+
+		mcpServer.AddTool(pythonTool.CreateTool(), pythonTool.HandleExecution)
+		mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
 	}
-
-	logger.Debug("Initializing Python tool with %T", pythonExecutor)
-	pythonTool := tools.NewPythonTool(pythonExecutor)
-
-	logger.Debug("Initializing Bash tool with %T", bashExecutor)
-	bashTool := tools.NewBashTool(bashExecutor)
-
-	logger.Debug("Registering tools with MCP server")
-	mcpServer.AddTool(pythonTool.CreateTool(), pythonTool.HandleExecution)
-	mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
 
 	logger.Debug("MCP server initialization complete")
 	return mcpServer

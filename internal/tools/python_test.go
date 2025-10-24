@@ -301,7 +301,6 @@ func TestPythonTool_HandleExecution_MissingCode(t *testing.T) {
 	}
 
 	result, err := pythonTool.HandleExecution(context.Background(), request)
-
 	// Should not return an error (handled gracefully)
 	if err != nil {
 		t.Errorf("HandleExecution() should not return error for missing code, got: %v", err)
@@ -335,7 +334,6 @@ func TestPythonTool_HandleExecution_ExecutorError(t *testing.T) {
 	}
 
 	result, err := pythonTool.HandleExecution(context.Background(), request)
-
 	if err != nil {
 		t.Errorf("HandleExecution() should not return error, errors should be in result, got: %v", err)
 	}
@@ -406,4 +404,193 @@ type ExecutorError struct {
 
 func (e ExecutorError) Error() string {
 	return e.Message
+}
+
+// Tests for SubprocessPythonTool
+
+func TestNewSubprocessPythonTool(t *testing.T) {
+	mockExec := &mockExecutor{}
+	tool := NewSubprocessPythonTool(mockExec)
+
+	if tool == nil {
+		t.Fatal("NewSubprocessPythonTool() returned nil")
+	}
+
+	if tool.executor == nil {
+		t.Error("NewSubprocessPythonTool() executor should not be nil")
+	}
+}
+
+func TestSubprocessPythonTool_CreateTool(t *testing.T) {
+	mockExec := &mockExecutor{}
+	pythonTool := NewSubprocessPythonTool(mockExec)
+
+	tool := pythonTool.CreateTool()
+
+	if tool.Name != "execute-python" {
+		t.Errorf("Tool name = %q, want %q", tool.Name, "execute-python")
+	}
+
+	if tool.Description == "" {
+		t.Error("Tool description should not be empty")
+	}
+
+	// Verify description mentions host system
+	if !strings.Contains(tool.Description, "host system") {
+		t.Error("Tool description should mention 'host system'")
+	}
+
+	// Verify required parameters
+	if tool.InputSchema.Properties == nil {
+		t.Fatal("Tool should have input schema properties")
+	}
+
+	// Check that 'code' parameter exists
+	codeSchema, hasCode := tool.InputSchema.Properties["code"]
+	if !hasCode {
+		t.Error("Tool should have 'code' parameter")
+	}
+	if codeSchema == nil {
+		t.Error("Code parameter schema should not be nil")
+	}
+
+	// CRITICAL: Check that 'modules' parameter does NOT exist
+	if _, hasModules := tool.InputSchema.Properties["modules"]; hasModules {
+		t.Error("SubprocessPythonTool should NOT have 'modules' parameter (no pip install allowed)")
+	}
+
+	// Check that 'env' parameter exists
+	if _, hasEnv := tool.InputSchema.Properties["env"]; !hasEnv {
+		t.Error("Tool should have 'env' parameter")
+	}
+}
+
+func TestSubprocessPythonTool_HandleExecution(t *testing.T) {
+	tests := []struct {
+		name         string
+		params       map[string]interface{}
+		mockOutput   string
+		mockError    error
+		wantErr      bool
+		wantResult   string
+		checkDeps    []string
+		checkEnvVars map[string]string
+	}{
+		{
+			name: "simple code execution",
+			params: map[string]interface{}{
+				"code": `print("hello")`,
+			},
+			mockOutput: "hello\n",
+			mockError:  nil,
+			wantErr:    false,
+			wantResult: "hello",
+			checkDeps:  nil, // Should always be nil
+		},
+		{
+			name: "with environment variables",
+			params: map[string]interface{}{
+				"code": `import os; print(os.getenv("API_KEY"))`,
+				"env":  "API_KEY=secret123,DEBUG=true",
+			},
+			mockOutput: "secret123",
+			mockError:  nil,
+			wantErr:    false,
+			wantResult: "secret123",
+			checkDeps:  nil, // Should always be nil
+			checkEnvVars: map[string]string{
+				"API_KEY": "secret123",
+				"DEBUG":   "true",
+			},
+		},
+		{
+			name: "empty code parameter",
+			params: map[string]interface{}{
+				"code": "",
+			},
+			mockOutput: "",
+			mockError:  nil,
+			wantErr:    false,
+			wantResult: "",
+			checkDeps:  nil, // Should always be nil
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockExec := &mockExecutor{
+				executeFunc: func(ctx context.Context, code string, dependencies []string, envVars map[string]string) (string, error) {
+					return tt.mockOutput, tt.mockError
+				},
+			}
+
+			pythonTool := NewSubprocessPythonTool(mockExec)
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name:      "execute-python",
+					Arguments: tt.params,
+				},
+			}
+
+			result, err := pythonTool.HandleExecution(context.Background(), request)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HandleExecution() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if result != nil && result.Content != nil {
+				if len(result.Content) > 0 {
+					if textContent, ok := result.Content[0].(mcp.TextContent); ok {
+						if !strings.Contains(textContent.Text, tt.wantResult) {
+							t.Errorf("HandleExecution() result = %q, want to contain %q", textContent.Text, tt.wantResult)
+						}
+					}
+				}
+			}
+
+			// CRITICAL: Verify dependencies are ALWAYS nil for subprocess mode
+			if mockExec.lastDeps != nil {
+				t.Errorf("SubprocessPythonTool should always pass nil dependencies, got: %v", mockExec.lastDeps)
+			}
+
+			// Check that environment variables were passed correctly
+			if tt.checkEnvVars != nil {
+				if len(mockExec.lastEnvVars) != len(tt.checkEnvVars) {
+					t.Errorf("EnvVars count = %d, want %d", len(mockExec.lastEnvVars), len(tt.checkEnvVars))
+				}
+				for key, expectedValue := range tt.checkEnvVars {
+					if actualValue, ok := mockExec.lastEnvVars[key]; !ok {
+						t.Errorf("EnvVar %q not found", key)
+					} else if actualValue != expectedValue {
+						t.Errorf("EnvVar[%q] = %q, want %q", key, actualValue, expectedValue)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestSubprocessPythonTool_NoDependencies(t *testing.T) {
+	mockExec := &mockExecutor{}
+	pythonTool := NewSubprocessPythonTool(mockExec)
+
+	request := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "execute-python",
+			Arguments: map[string]interface{}{
+				"code": `print("test")`,
+			},
+		},
+	}
+
+	_, err := pythonTool.HandleExecution(context.Background(), request)
+	if err != nil {
+		t.Errorf("HandleExecution() should succeed, got error: %v", err)
+	}
+
+	// CRITICAL: Verify that nil is passed for dependencies (no pip install)
+	if mockExec.lastDeps != nil {
+		t.Errorf("SubprocessPythonTool must pass nil dependencies to prevent pip install, got: %v", mockExec.lastDeps)
+	}
 }

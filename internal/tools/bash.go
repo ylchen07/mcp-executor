@@ -25,7 +25,7 @@ func (b *BashTool) CreateTool() mcp.Tool {
 	return mcp.NewTool(
 		"execute-bash",
 		mcp.WithDescription(
-			"Execute bash/shell commands in an isolated Linux environment. Use this tool when you need to run shell commands, system utilities, or interact with the filesystem. Only output printed to stdout or stderr is returned so make sure commands produce output! Please note all code is run in an ephemeral container so files and state do NOT persist!",
+			"Execute bash/shell commands in an isolated Docker container (Ubuntu 22.04). System packages can be dynamically installed. Use this tool when you need to run shell commands, system utilities, or require specific command-line tools. Only output printed to stdout or stderr is returned so make sure commands produce output! Note: Code runs in ephemeral containers - files and state do NOT persist between executions.",
 		),
 		mcp.WithString(
 			"script",
@@ -35,7 +35,7 @@ func (b *BashTool) CreateTool() mcp.Tool {
 		mcp.WithString(
 			"packages",
 			mcp.Description(
-				"Comma-separated list of Ubuntu packages your script requires. If your script requires external tools you MUST pass them here! These will be installed automatically using apt-get.",
+				"Comma-separated list of Ubuntu packages to install (e.g., 'curl,jq,git'). Packages are installed automatically via apt-get before script execution.",
 			),
 		),
 		mcp.WithString(
@@ -91,5 +91,74 @@ func (b *BashTool) HandleExecution(
 	}
 
 	logger.Debug("Bash execution completed successfully")
+	return mcp.NewToolResultText(output), nil
+}
+
+// SubprocessBashTool executes bash commands on the host system without package installation support
+type SubprocessBashTool struct {
+	executor executor.Executor
+}
+
+func NewSubprocessBashTool(exec executor.Executor) *SubprocessBashTool {
+	return &SubprocessBashTool{
+		executor: exec,
+	}
+}
+
+func (b *SubprocessBashTool) CreateTool() mcp.Tool {
+	return mcp.NewTool(
+		"execute-bash",
+		mcp.WithDescription(
+			"Execute bash/shell commands directly on the host system. Only pre-installed system utilities are available. Use this tool when you need to run shell commands or interact with the host filesystem. Only output printed to stdout or stderr is returned so make sure commands produce output! Note: Code runs on the host system with user permissions.",
+		),
+		mcp.WithString(
+			"script",
+			mcp.Description("The bash script or commands to execute"),
+			mcp.Required(),
+		),
+		mcp.WithString(
+			"env",
+			mcp.Description(
+				"Comma-separated list of environment variables in KEY=VALUE format (e.g., 'API_KEY=secret,DEBUG=true'). These will be available to your bash script.",
+			),
+		),
+	)
+}
+
+func (b *SubprocessBashTool) HandleExecution(
+	ctx context.Context,
+	request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
+	logger.Debug("Subprocess Bash tool execution requested")
+
+	script, err := request.RequireString("script")
+	if err != nil {
+		logger.Debug("Subprocess Bash tool execution failed: missing script argument")
+		return mcp.NewToolResultError("Missing or invalid script argument"), nil
+	}
+
+	// Parse environment variables
+	envVars := make(map[string]string)
+	if envStr := request.GetString("env", ""); envStr != "" {
+		envPairs := strings.Split(envStr, ",")
+		for _, pair := range envPairs {
+			pair = strings.TrimSpace(pair)
+			if equalIndex := strings.Index(pair, "="); equalIndex > 0 {
+				key := strings.TrimSpace(pair[:equalIndex])
+				value := strings.TrimSpace(pair[equalIndex+1:])
+				envVars[key] = value
+			}
+		}
+		logger.Debug("Subprocess Bash environment variables: %v", envVars)
+	}
+
+	// No package installation for subprocess mode - pass empty slice
+	output, err := b.executor.Execute(ctx, script, nil, envVars)
+	if err != nil {
+		logger.Debug("Subprocess Bash execution failed: %v", err)
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+
+	logger.Debug("Subprocess Bash execution completed successfully")
 	return mcp.NewToolResultText(output), nil
 }

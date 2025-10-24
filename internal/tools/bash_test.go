@@ -292,7 +292,6 @@ func TestBashTool_HandleExecution_MissingScript(t *testing.T) {
 	}
 
 	result, err := bashTool.HandleExecution(context.Background(), request)
-
 	// Should not return an error (handled gracefully)
 	if err != nil {
 		t.Errorf("HandleExecution() should not return error for missing script, got: %v", err)
@@ -326,7 +325,6 @@ func TestBashTool_HandleExecution_ExecutorError(t *testing.T) {
 	}
 
 	result, err := bashTool.HandleExecution(context.Background(), request)
-
 	if err != nil {
 		t.Errorf("HandleExecution() should not return error, errors should be in result, got: %v", err)
 	}
@@ -522,5 +520,190 @@ func TestBashTool_HandleExecution_PackagesParsing(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// Tests for SubprocessBashTool
+
+func TestNewSubprocessBashTool(t *testing.T) {
+	mockExec := &mockExecutor{}
+	tool := NewSubprocessBashTool(mockExec)
+
+	if tool == nil {
+		t.Fatal("NewSubprocessBashTool() returned nil")
+	}
+
+	if tool.executor == nil {
+		t.Error("NewSubprocessBashTool() executor should not be nil")
+	}
+}
+
+func TestSubprocessBashTool_CreateTool(t *testing.T) {
+	mockExec := &mockExecutor{}
+	bashTool := NewSubprocessBashTool(mockExec)
+
+	tool := bashTool.CreateTool()
+
+	if tool.Name != "execute-bash" {
+		t.Errorf("Tool name = %q, want %q", tool.Name, "execute-bash")
+	}
+
+	if tool.Description == "" {
+		t.Error("Tool description should not be empty")
+	}
+
+	// Verify description mentions host system
+	if !strings.Contains(tool.Description, "host system") {
+		t.Error("Tool description should mention 'host system'")
+	}
+
+	// Verify required parameters
+	if tool.InputSchema.Properties == nil {
+		t.Fatal("Tool should have input schema properties")
+	}
+
+	// Check that 'script' parameter exists
+	scriptSchema, hasScript := tool.InputSchema.Properties["script"]
+	if !hasScript {
+		t.Error("Tool should have 'script' parameter")
+	}
+	if scriptSchema == nil {
+		t.Error("Script parameter schema should not be nil")
+	}
+
+	// CRITICAL: Check that 'packages' parameter does NOT exist
+	if _, hasPackages := tool.InputSchema.Properties["packages"]; hasPackages {
+		t.Error("SubprocessBashTool should NOT have 'packages' parameter (no apt-get install allowed)")
+	}
+
+	// Check that 'env' parameter exists
+	if _, hasEnv := tool.InputSchema.Properties["env"]; !hasEnv {
+		t.Error("Tool should have 'env' parameter")
+	}
+}
+
+func TestSubprocessBashTool_HandleExecution(t *testing.T) {
+	tests := []struct {
+		name         string
+		params       map[string]interface{}
+		mockOutput   string
+		mockError    error
+		wantErr      bool
+		wantResult   string
+		checkEnvVars map[string]string
+	}{
+		{
+			name: "simple script execution",
+			params: map[string]interface{}{
+				"script": `echo "hello"`,
+			},
+			mockOutput: "hello\n",
+			mockError:  nil,
+			wantErr:    false,
+			wantResult: "hello",
+		},
+		{
+			name: "with environment variables",
+			params: map[string]interface{}{
+				"script": `echo $API_KEY`,
+				"env":    "API_KEY=secret123,DEBUG=true",
+			},
+			mockOutput: "secret123",
+			mockError:  nil,
+			wantErr:    false,
+			wantResult: "secret123",
+			checkEnvVars: map[string]string{
+				"API_KEY": "secret123",
+				"DEBUG":   "true",
+			},
+		},
+		{
+			name: "multiline script",
+			params: map[string]interface{}{
+				"script": "#!/bin/bash\necho 'line1'\necho 'line2'",
+			},
+			mockOutput: "line1\nline2\n",
+			mockError:  nil,
+			wantErr:    false,
+			wantResult: "line1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockExec := &mockExecutor{
+				executeFunc: func(ctx context.Context, code string, dependencies []string, envVars map[string]string) (string, error) {
+					return tt.mockOutput, tt.mockError
+				},
+			}
+
+			bashTool := NewSubprocessBashTool(mockExec)
+			request := mcp.CallToolRequest{
+				Params: mcp.CallToolParams{
+					Name:      "execute-bash",
+					Arguments: tt.params,
+				},
+			}
+
+			result, err := bashTool.HandleExecution(context.Background(), request)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("HandleExecution() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if result != nil && result.Content != nil {
+				if len(result.Content) > 0 {
+					if textContent, ok := result.Content[0].(mcp.TextContent); ok {
+						if !strings.Contains(textContent.Text, tt.wantResult) {
+							t.Errorf("HandleExecution() result = %q, want to contain %q", textContent.Text, tt.wantResult)
+						}
+					}
+				}
+			}
+
+			// CRITICAL: Verify dependencies are ALWAYS nil for subprocess mode
+			if mockExec.lastDeps != nil {
+				t.Errorf("SubprocessBashTool should always pass nil dependencies, got: %v", mockExec.lastDeps)
+			}
+
+			// Check that environment variables were passed correctly
+			if tt.checkEnvVars != nil {
+				if len(mockExec.lastEnvVars) != len(tt.checkEnvVars) {
+					t.Errorf("EnvVars count = %d, want %d", len(mockExec.lastEnvVars), len(tt.checkEnvVars))
+				}
+				for key, expectedValue := range tt.checkEnvVars {
+					if actualValue, ok := mockExec.lastEnvVars[key]; !ok {
+						t.Errorf("EnvVar %q not found", key)
+					} else if actualValue != expectedValue {
+						t.Errorf("EnvVar[%q] = %q, want %q", key, actualValue, expectedValue)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestSubprocessBashTool_NoDependencies(t *testing.T) {
+	mockExec := &mockExecutor{}
+	bashTool := NewSubprocessBashTool(mockExec)
+
+	request := mcp.CallToolRequest{
+		Params: mcp.CallToolParams{
+			Name: "execute-bash",
+			Arguments: map[string]interface{}{
+				"script": `echo "test"`,
+			},
+		},
+	}
+
+	_, err := bashTool.HandleExecution(context.Background(), request)
+	if err != nil {
+		t.Errorf("HandleExecution() should succeed, got error: %v", err)
+	}
+
+	// CRITICAL: Verify that nil is passed for dependencies (no apt-get install)
+	if mockExec.lastDeps != nil {
+		t.Errorf("SubprocessBashTool must pass nil dependencies to prevent apt-get install, got: %v", mockExec.lastDeps)
 	}
 }

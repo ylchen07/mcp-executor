@@ -17,7 +17,7 @@ Perfect for data analysis, web scraping, system administration, and automation t
 - 🐍 **Python Execution**: Run Python code with pip package installation support
 - 🔧 **Bash Execution**: Execute shell commands and scripts
 - 🎭 **Playwright Support**: Built-in browser automation in Docker mode
-- 📦 **Dynamic Package Installation**: Install Python modules (subprocess/Docker) and Ubuntu packages (Docker only)
+- 📦 **Dynamic Package Installation**: Install Python modules and Ubuntu packages (Docker mode only)
 - 🔄 **Triple Protocol Support**: stdio, SSE (Server-Sent Events), and HTTP transport modes
 - 🧹 **Clean Execution**: Subprocess mode or ephemeral Docker containers
 - 🛡️ **Flexible Security**: Balance between speed (subprocess) and isolation (Docker)
@@ -136,7 +136,7 @@ Combine transport and execution modes with verbose logging:
 
 ## Tools
 
-The server provides two MCP tools that work in both subprocess and Docker execution modes:
+The server provides two MCP tools: `execute-python` and `execute-bash`. The tool parameters vary based on the execution mode:
 
 ### Tool: execute-python
 
@@ -144,15 +144,24 @@ Executes Python code in either subprocess (default) or Docker container based on
 
 **Execution Mode Differences:**
 
-- **Subprocess**: Uses host's `python3`, installs packages with `pip install --user`
-- **Docker**: Uses Playwright Python image, includes browser automation support
+- **Subprocess Mode**: Uses host's `python3`. **No module installation** allowed for security. Only pre-installed packages and standard library are available.
+- **Docker Mode**: Uses Playwright Python image with full pip install support and browser automation capabilities.
 
 ### Parameters
+
+**Subprocess Mode:**
 
 | Parameter | Type   | Required | Description                                                         |
 | --------- | ------ | -------- | ------------------------------------------------------------------- |
 | `code`    | string | Yes      | Python code to execute                                              |
-| `modules` | string | No       | Comma-separated list of Python modules to install                   |
+| `env`     | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
+
+**Docker Mode:**
+
+| Parameter | Type   | Required | Description                                                         |
+| --------- | ------ | -------- | ------------------------------------------------------------------- |
+| `code`    | string | Yes      | Python code to execute                                              |
+| `modules` | string | No       | Comma-separated list of Python modules to install via pip           |
 | `env`     | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
 
 ### Example Usage
@@ -165,7 +174,9 @@ Executes Python code in either subprocess (default) or Docker container based on
 }
 ```
 
-#### With Module Installation
+#### With Module Installation (Docker Mode Only)
+
+> **Note**: The `modules` parameter is only available in Docker mode. Subprocess mode does not support module installation for security reasons.
 
 ```json
 {
@@ -174,9 +185,9 @@ Executes Python code in either subprocess (default) or Docker container based on
 }
 ```
 
-#### Web Scraping with Playwright
+#### Web Scraping with Playwright (Docker Mode Only)
 
-> **Note**: Playwright browser automation works best in Docker mode (`--execution-mode docker`) as the Playwright image includes pre-installed browser binaries. In subprocess mode, you'll need browsers installed on your host system.
+> **Note**: Playwright browser automation requires Docker mode (`--execution-mode docker`) as it needs the `modules` parameter for installation and the Playwright image includes pre-installed browser binaries.
 
 ```json
 {
@@ -191,16 +202,25 @@ Executes bash scripts in either subprocess (default) or Docker container based o
 
 **Execution Mode Differences:**
 
-- **Subprocess**: Uses host's `bash`, package installation disabled for security
-- **Docker**: Uses Ubuntu 22.04 container, supports `apt-get` package installation
+- **Subprocess Mode**: Uses host's `bash`. **No package installation** allowed for security. Only pre-installed system utilities are available.
+- **Docker Mode**: Uses Ubuntu 22.04 container with full apt-get package installation support.
 
 #### Parameters
 
-| Parameter  | Type   | Required | Description                                                           |
-| ---------- | ------ | -------- | --------------------------------------------------------------------- |
-| `script`   | string | Yes      | Bash script or commands to execute                                    |
-| `packages` | string | No       | Comma-separated list of Ubuntu packages to install (Docker mode only) |
-| `env`      | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment   |
+**Subprocess Mode:**
+
+| Parameter | Type   | Required | Description                                                         |
+| --------- | ------ | -------- | ------------------------------------------------------------------- |
+| `script`  | string | Yes      | Bash script or commands to execute                                  |
+| `env`     | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
+
+**Docker Mode:**
+
+| Parameter  | Type   | Required | Description                                                         |
+| ---------- | ------ | -------- | ------------------------------------------------------------------- |
+| `script`   | string | Yes      | Bash script or commands to execute                                  |
+| `packages` | string | No       | Comma-separated list of Ubuntu packages to install via apt-get      |
+| `env`      | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
 
 #### Example Usage
 
@@ -250,13 +270,13 @@ graph TB
     end
 
     subgraph "Tools Layer"
-        F --> G[internal/tools/python.go]
-        F --> H[internal/tools/bash.go]
+        F --> G[internal/tools/python.go<br/>Docker: PythonTool<br/>Subprocess: SubprocessPythonTool]
+        F --> H[internal/tools/bash.go<br/>Docker: BashTool<br/>Subprocess: SubprocessBashTool]
     end
 
     subgraph "Execution Layer"
-        G --> I[internal/executor/subprocess.go<br/>Default]
-        G --> I2[internal/executor/docker.go<br/>Optional]
+        G --> I[internal/executor/subprocess.go<br/>No package installation]
+        G --> I2[internal/executor/docker.go<br/>Full package installation]
         H --> I
         H --> I2
         I --> J[Python/Bash Subprocess<br/>Host Machine]
@@ -309,11 +329,12 @@ graph TB
 - **CLI Framework**: Built using `github.com/spf13/cobra` for robust command-line interface
 - **MCP Server**: Built using `github.com/mark3labs/mcp-go` library with multiple transport support
 - **Executor Interface**: Abstraction for different execution strategies (subprocess, Docker)
-- **Subprocess Executor**: Default executor running code directly on host machine
-- **Docker Executor**: Optional executor for isolated container execution
-- **Dependency Injection**: Server selects executors based on `--execution-mode` flag
-- **Python Tool**: MCP tool implementation working with any executor
-- **Bash Tool**: MCP tool implementation working with any executor
+- **Subprocess Executor**: Default executor running code directly on host machine (no package installation)
+- **Docker Executor**: Optional executor for isolated container execution (full package installation)
+- **Dependency Injection**: Server selects appropriate tools and executors based on `--execution-mode` flag
+- **Tool Separation**: Distinct tool implementations for each execution mode:
+  - **Docker Tools**: `PythonTool` and `BashTool` with `modules`/`packages` parameters
+  - **Subprocess Tools**: `SubprocessPythonTool` and `SubprocessBashTool` without installation parameters
 - **Logger**: Centralized logging with verbose mode support
 - **Configuration**: Centralized constants and settings
 - **Makefile**: Comprehensive build, test, and development targets
@@ -335,17 +356,19 @@ graph TB
 
 - **Python Binary**: `python3`
 - **Bash Binary**: `bash`
-- **Python Packages**: Installed via `pip install --user`
-- **Bash Packages**: Not supported (must be pre-installed on host)
+- **Python Packages**: ❌ Not supported - pre-installed packages only (security restriction)
+- **Bash Packages**: ❌ Not supported - pre-installed utilities only (security restriction)
 - **Environment**: Inherits from host + custom variables
+- **Security**: Defense-in-depth prevents package installation at API and execution layers
 
 #### Docker Mode (Optional)
 
 - **Python Image**: `mcr.microsoft.com/playwright/python:v1.53.0-noble`
 - **Bash Image**: `ubuntu:22.04`
-- **Python Packages**: Installed via `pip install` in container
-- **Bash Packages**: Installed via `apt-get install` in container
+- **Python Packages**: ✅ Full support - installed via `pip install` in ephemeral containers
+- **Bash Packages**: ✅ Full support - installed via `apt-get install` in ephemeral containers
 - **Environment**: Isolated container environment + custom variables
+- **Security**: Full isolation with ephemeral containers removed after each execution
 
 ## Development
 
@@ -403,8 +426,10 @@ make deps
 
 - **No Isolation**: Code has access to the host filesystem and environment
 - **User Permissions**: Runs with the same permissions as the server process
-- **Package Persistence**: Python packages installed via pip persist in user's cache
-- **Bash Limitations**: System package installation disabled for safety
+- **No Package Installation**: Defense-in-depth security prevents both pip and apt-get installations:
+  - Tool schema omits `modules` and `packages` parameters (API-level protection)
+  - Executor enforces `InstallCmd: nil` (execution-level protection)
+  - Only pre-installed packages and standard libraries are available
 - **Recommendation**: Only use for trusted code or development environments
 
 ### Docker Mode
@@ -458,8 +483,10 @@ When using `--execution-mode docker`, the following Docker images are used:
 ### Subprocess Mode
 
 - **No Isolation**: Code runs on host with full filesystem access
-- **Package Persistence**: Python packages persist in user's pip cache (not truly ephemeral)
-- **No Bash Packages**: Cannot install system packages for security reasons
+- **No Package Installation**: Cannot install pip modules or system packages for security
+  - Prevents arbitrary code execution via package installation
+  - Enforced at both API (no `modules`/`packages` parameters) and execution layers
+- **Limited to Pre-installed**: Only standard libraries and pre-installed packages available
 - **Security Risk**: Untrusted code can potentially harm the host system
 
 ### Docker Mode
