@@ -149,11 +149,11 @@ Executes Python code in either subprocess (default) or Docker container based on
 
 ### Parameters
 
-| Parameter | Type   | Required | Description                                                 |
-| --------- | ------ | -------- | ----------------------------------------------------------- |
-| `code`    | string | Yes      | Python code to execute                                      |
-| `modules` | string | No       | Comma-separated list of Python modules to install           |
-| `env`     | string | No       | Comma-separated KEY=VALUE pairs injected into the container |
+| Parameter | Type   | Required | Description                                                         |
+| --------- | ------ | -------- | ------------------------------------------------------------------- |
+| `code`    | string | Yes      | Python code to execute                                              |
+| `modules` | string | No       | Comma-separated list of Python modules to install                   |
+| `env`     | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
 
 ### Example Usage
 
@@ -176,6 +176,8 @@ Executes Python code in either subprocess (default) or Docker container based on
 
 #### Web Scraping with Playwright
 
+> **Note**: Playwright browser automation works best in Docker mode (`--execution-mode docker`) as the Playwright image includes pre-installed browser binaries. In subprocess mode, you'll need browsers installed on your host system.
+
 ```json
 {
   "code": "from playwright.sync_api import sync_playwright\n\nwith sync_playwright() as p:\n    browser = p.chromium.launch()\n    page = browser.new_page()\n    page.goto('https://example.com')\n    title = page.title()\n    print(f'Page title: {title}')\n    browser.close()",
@@ -194,11 +196,11 @@ Executes bash scripts in either subprocess (default) or Docker container based o
 
 #### Parameters
 
-| Parameter  | Type   | Required | Description                                             |
-| ---------- | ------ | -------- | ------------------------------------------------------- |
-| `script`   | string | Yes      | Bash script or commands to execute                      |
-| `packages` | string | No       | Comma-separated list of Ubuntu packages to install      |
-| `env`      | string | No       | Comma-separated KEY=VALUE pairs available to the script |
+| Parameter  | Type   | Required | Description                                                           |
+| ---------- | ------ | -------- | --------------------------------------------------------------------- |
+| `script`   | string | Yes      | Bash script or commands to execute                                    |
+| `packages` | string | No       | Comma-separated list of Ubuntu packages to install (Docker mode only) |
+| `env`      | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment   |
 
 #### Example Usage
 
@@ -211,6 +213,8 @@ Executes bash scripts in either subprocess (default) or Docker container based o
 ```
 
 ##### With Package Installation
+
+> **Note**: Package installation via `packages` parameter only works in Docker mode (`--execution-mode docker`). In subprocess mode, required packages must be pre-installed on the host system.
 
 ```json
 {
