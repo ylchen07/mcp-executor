@@ -80,14 +80,14 @@ func TestPythonTool_CreateTool(t *testing.T) {
 
 func TestPythonTool_HandleExecution(t *testing.T) {
 	tests := []struct {
-		name           string
-		params         map[string]interface{}
-		mockOutput     string
-		mockError      error
-		wantErr        bool
-		wantResult     string
-		checkDeps      []string
-		checkEnvVars   map[string]string
+		name         string
+		params       map[string]interface{}
+		mockOutput   string
+		mockError    error
+		wantErr      bool
+		wantResult   string
+		checkDeps    []string
+		checkEnvVars map[string]string
 	}{
 		{
 			name: "simple code execution",

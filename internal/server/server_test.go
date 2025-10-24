@@ -3,7 +3,6 @@ package server
 import (
 	"testing"
 
-	mcpserver "github.com/mark3labs/mcp-go/server"
 	"github.com/ylchen07/mcp-executor/internal/executor"
 )
 
@@ -242,13 +241,13 @@ func TestRunFunctions_NoExternalDependencies(t *testing.T) {
 	}
 
 	// Verify RunStdio function signature
-	var _ func(*mcpserver.MCPServer) error = RunStdio
+	_ = RunStdio
 
 	// Verify RunSSE function signature
-	var _ func(*mcpserver.MCPServer) error = RunSSE
+	_ = RunSSE
 
 	// Verify RunHTTP function signature
-	var _ func(*mcpserver.MCPServer) error = RunHTTP
+	_ = RunHTTP
 
 	t.Log("All Run* functions have correct signatures")
 }

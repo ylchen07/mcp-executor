@@ -61,25 +61,25 @@ func TestBashTool_CreateTool(t *testing.T) {
 
 func TestBashTool_HandleExecution(t *testing.T) {
 	tests := []struct {
-		name           string
-		params         map[string]interface{}
-		mockOutput     string
-		mockError      error
-		wantErr        bool
-		wantResult     string
-		checkPackages  []string
-		checkEnvVars   map[string]string
+		name          string
+		params        map[string]interface{}
+		mockOutput    string
+		mockError     error
+		wantErr       bool
+		wantResult    string
+		checkPackages []string
+		checkEnvVars  map[string]string
 	}{
 		{
 			name: "simple script execution",
 			params: map[string]interface{}{
 				"script": `echo "hello"`,
 			},
-			mockOutput: "hello\n",
-			mockError:  nil,
-			wantErr:    false,
-			wantResult: "hello",
-			checkPackages:  nil,
+			mockOutput:    "hello\n",
+			mockError:     nil,
+			wantErr:       false,
+			wantResult:    "hello",
+			checkPackages: nil,
 		},
 		{
 			name: "with single package",
@@ -87,11 +87,11 @@ func TestBashTool_HandleExecution(t *testing.T) {
 				"script":   `curl --version`,
 				"packages": "curl",
 			},
-			mockOutput: "success",
-			mockError:  nil,
-			wantErr:    false,
-			wantResult: "success",
-			checkPackages:  []string{"curl"},
+			mockOutput:    "success",
+			mockError:     nil,
+			wantErr:       false,
+			wantResult:    "success",
+			checkPackages: []string{"curl"},
 		},
 		{
 			name: "with multiple packages",
@@ -99,11 +99,11 @@ func TestBashTool_HandleExecution(t *testing.T) {
 				"script":   `curl --version && wget --version`,
 				"packages": "curl,wget,jq",
 			},
-			mockOutput: "success",
-			mockError:  nil,
-			wantErr:    false,
-			wantResult: "success",
-			checkPackages:  []string{"curl", "wget", "jq"},
+			mockOutput:    "success",
+			mockError:     nil,
+			wantErr:       false,
+			wantResult:    "success",
+			checkPackages: []string{"curl", "wget", "jq"},
 		},
 		{
 			name: "with packages containing spaces",
@@ -111,11 +111,11 @@ func TestBashTool_HandleExecution(t *testing.T) {
 				"script":   `curl --version`,
 				"packages": "curl , wget , jq",
 			},
-			mockOutput: "success",
-			mockError:  nil,
-			wantErr:    false,
-			wantResult: "success",
-			checkPackages:  []string{"curl", "wget", "jq"},
+			mockOutput:    "success",
+			mockError:     nil,
+			wantErr:       false,
+			wantResult:    "success",
+			checkPackages: []string{"curl", "wget", "jq"},
 		},
 		{
 			name: "with single env var",
@@ -184,10 +184,10 @@ func TestBashTool_HandleExecution(t *testing.T) {
 				"packages": "curl,wget",
 				"env":      "API_KEY=secret,DEBUG=true",
 			},
-			mockOutput: "success",
-			mockError:  nil,
-			wantErr:    false,
-			wantResult: "success",
+			mockOutput:    "success",
+			mockError:     nil,
+			wantErr:       false,
+			wantResult:    "success",
 			checkPackages: []string{"curl", "wget"},
 			checkEnvVars: map[string]string{
 				"API_KEY": "secret",

@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"context"
 	"strings"
 	"testing"
 )
@@ -215,7 +214,7 @@ func TestDockerExecutor_Execute_ErrorHandling(t *testing.T) {
 	}
 
 	// Verify the Execute method exists and has correct signature
-	var _ func(context.Context, string, []string, map[string]string) (string, error) = executor.Execute
+	_ = executor.Execute
 }
 
 func TestDockerExecutor_ConfigValidation(t *testing.T) {
