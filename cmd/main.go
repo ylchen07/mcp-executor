@@ -3,8 +3,6 @@
 // in isolated Docker containers.
 package main
 
-import "github.com/ylchen07/mcp-executor/cmd"
-
 func main() {
-	cmd.Execute()
+	Execute()
 }

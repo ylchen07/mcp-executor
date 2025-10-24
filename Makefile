@@ -6,7 +6,7 @@ BINARY_NAME?=mcp-executor
 GOTEST=CGO_ENABLED=0 GOCACHE=$(GOCACHE_DIR) $(GOCMD) test
 GOTIDY=GOCACHE=$(GOCACHE_DIR) $(GOCMD) mod tidy
 GOBUILD=CGO_ENABLED=0 GOCACHE=$(GOCACHE_DIR) $(GOCMD) build
-GORUN=GOCACHE=$(GOCACHE_DIR) $(GOCMD) run main.go
+GORUN=GOCACHE=$(GOCACHE_DIR) $(GOCMD) run ./cmd
 GOLANGCI_LINT?=golangci-lint
 LINT_ENV=CGO_ENABLED=0 XDG_CACHE_HOME=$(CURDIR)/.cache GOLANGCI_LINT_CACHE=$(CURDIR)/.cache/golangci
 
@@ -41,7 +41,7 @@ test-coverage: | $(COVERAGE_DIR)
 	@echo "Coverage report generated: $(COVERAGE_DIR)/coverage.html"
 
 build: | $(BIN_DIR)
-	$(GOBUILD) -o $(BIN_DIR)/$(BINARY_NAME) .
+	$(GOBUILD) -o $(BIN_DIR)/$(BINARY_NAME) ./cmd
 
 run:
 	$(GORUN)

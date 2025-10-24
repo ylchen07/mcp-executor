@@ -1,6 +1,6 @@
-// Package cmd provides the command-line interface using Cobra framework
+// Package main provides the command-line interface using Cobra framework
 // for the mcp-executor application with support for multiple transport modes.
-package cmd
+package main
 
 import (
 	"fmt"
