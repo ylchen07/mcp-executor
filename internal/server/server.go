@@ -7,6 +7,7 @@ import (
 	"github.com/ylchen07/mcp-executor/internal/config"
 	"github.com/ylchen07/mcp-executor/internal/executor"
 	"github.com/ylchen07/mcp-executor/internal/logger"
+	"github.com/ylchen07/mcp-executor/internal/prompts"
 	"github.com/ylchen07/mcp-executor/internal/tools"
 )
 
@@ -60,6 +61,9 @@ func NewMCPServer(executionMode string) *server.MCPServer {
 		mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
 	}
 
+	// Register prompts based on execution mode
+	registerPrompts(mcpServer, executionMode)
+
 	logger.Debug("MCP server initialization complete")
 	return mcpServer
 }
@@ -81,4 +85,37 @@ func RunHTTP(mcpServer *server.MCPServer) error {
 	httpServer := server.NewStreamableHTTPServer(mcpServer)
 	logger.Verbose("Starting HTTP server on localhost:8081")
 	return httpServer.Start(config.HTTPPort)
+}
+
+// registerPrompts registers prompts to the MCP server based on execution mode.
+// Some prompts are only available in specific execution modes:
+// - subprocess: system-check (host system information)
+// - docker: (future prompts that require container isolation)
+// - all modes: (future universal prompts)
+func registerPrompts(mcpServer *server.MCPServer, executionMode string) {
+	logger.Debug("Registering prompts for execution mode: %s", executionMode)
+
+	switch executionMode {
+	case "subprocess", "": // Empty string is default/unknown mode (defaults to subprocess)
+		logger.Debug("Registering subprocess-mode prompts")
+
+		// System check - only works in subprocess mode for host system info
+		systemCheckPrompt := prompts.NewSystemCheckPrompt()
+		mcpServer.AddPrompt(
+			systemCheckPrompt.CreatePrompt(),
+			systemCheckPrompt.HandlePrompt,
+		)
+		logger.Debug("Registered system-check prompt")
+
+	case "docker":
+		logger.Debug("No prompts registered for Docker mode (container-only context)")
+		// Future: Add Docker-specific prompts here
+		// Example: prompts for exploring container capabilities, installed packages, etc.
+	}
+
+	// Future: Register prompts that work in ALL execution modes
+	// Example:
+	// logger.Debug("Registering universal prompts")
+	// helpPrompt := prompts.NewHelpPrompt()
+	// mcpServer.AddPrompt(helpPrompt.CreatePrompt(), helpPrompt.HandlePrompt())
 }

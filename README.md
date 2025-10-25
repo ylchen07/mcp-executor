@@ -252,6 +252,122 @@ Executes bash scripts in either subprocess (default) or Docker container based o
 }
 ```
 
+## Prompts
+
+The server provides pre-built prompt templates to guide common tasks. Prompts return formatted messages with ready-to-execute scripts that can be run using the tools above.
+
+**Note**: Prompts are execution-mode aware and only registered when appropriate for the current mode.
+
+### Prompt: system-check
+
+Generates a bash script to gather comprehensive host system information. **Only available in subprocess execution mode** to ensure accurate host system data.
+
+**Description**: Gather comprehensive system information from the host machine including OS details, CPU, memory, disk usage, network interfaces, and running processes.
+
+**Arguments**:
+
+| Argument       | Type   | Required | Description                                                               | Default |
+| -------------- | ------ | -------- | ------------------------------------------------------------------------- | ------- |
+| `detail_level` | string | No       | Level of detail: `basic`, `detailed`, or `full`. See detail levels below. | `basic` |
+
+**Detail Levels**:
+
+- **`basic`** (default):
+  - OS name and version
+  - CPU model and core count
+  - Memory usage (total/used/free)
+  - Root disk usage
+
+- **`detailed`**:
+  - Everything in `basic`
+  - System uptime and load averages
+  - Network interfaces and IP addresses
+  - Top 10 processes by memory usage
+  - Total process count
+
+- **`full`**:
+  - Everything in `detailed`
+  - All mounted filesystems
+  - Kernel parameters (sample)
+  - Logged-in users
+  - Environment variables (non-sensitive)
+
+**Example Usage**:
+
+Request the prompt with basic detail level:
+
+```json
+{
+  "method": "prompts/get",
+  "params": {
+    "name": "system-check",
+    "arguments": {
+      "detail_level": "basic"
+    }
+  }
+}
+```
+
+The server returns a formatted message with a bash script that you can then execute using the `execute-bash` tool:
+
+```json
+{
+  "method": "tools/call",
+  "params": {
+    "name": "execute-bash",
+    "arguments": {
+      "script": "<generated system check script>"
+    }
+  }
+}
+```
+
+**Important Notes**:
+
+- ⚠️ **Subprocess mode only**: This prompt is only registered when running in subprocess mode (`--execution-mode subprocess` or default). It will not appear in Docker mode.
+- 🎯 **Host system info**: Designed to gather information about the host machine where the server is running, not container information.
+- 🔒 **Security**: Scripts include fallback commands and error handling for missing utilities.
+
+**Example with detailed level**:
+
+```json
+{
+  "method": "prompts/get",
+  "params": {
+    "name": "system-check",
+    "arguments": {
+      "detail_level": "detailed"
+    }
+  }
+}
+```
+
+**Example with full level**:
+
+```json
+{
+  "method": "prompts/get",
+  "params": {
+    "name": "system-check",
+    "arguments": {
+      "detail_level": "full"
+    }
+  }
+}
+```
+
+**Listing available prompts**:
+
+To see all available prompts for the current execution mode:
+
+```json
+{
+  "method": "prompts/list"
+}
+```
+
+In subprocess mode, this will include `system-check`. In Docker mode, the list will be empty (no prompts registered).
+
 ## Architecture
 
 The project follows a clean, modular architecture built with the Cobra CLI framework:
