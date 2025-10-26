@@ -148,11 +148,15 @@ func TestVerbosePrint(t *testing.T) {
 			SetVerbose(tt.verboseEnabled)
 			VerbosePrint(tt.format, tt.args...)
 
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("Failed to close pipe writer: %v", err)
+			}
 			os.Stdout = old
 
 			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			if _, err := io.Copy(&buf, r); err != nil {
+				t.Fatalf("Failed to copy pipe output: %v", err)
+			}
 			output := buf.String()
 
 			if tt.wantOutput {
@@ -396,11 +400,15 @@ func TestVerbosePrintWithFormatting(t *testing.T) {
 	SetVerbose(true)
 	VerbosePrint("Number: %d, String: %s, Bool: %v", 42, "test", true)
 
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe writer: %v", err)
+	}
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	if _, err := io.Copy(&buf, r); err != nil {
+		t.Fatalf("Failed to copy pipe output: %v", err)
+	}
 	output := buf.String()
 
 	expectedParts := []string{"Number:", "42", "String:", "test", "Bool:", "true"}
