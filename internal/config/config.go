@@ -1,5 +1,5 @@
 // Package config provides centralized configuration constants
-// for server identity, ports, and transport endpoints.
+// for server identity, ports, transport endpoints, and Docker images.
 package config
 
 const (
@@ -9,4 +9,10 @@ const (
 	SSEHost       = "http://localhost:8080"
 	HTTPPort      = ":8081"
 	HTTPHost      = "http://localhost:8081"
+
+	// Docker images for code execution
+	PythonDockerImage = "mcr.microsoft.com/playwright/python:v1.53.0-noble"
+	BashDockerImage   = "ubuntu:22.04"
+	PerlDockerImage   = "perl:5.40"
+	GoDockerImage     = "golang:1.23"
 )

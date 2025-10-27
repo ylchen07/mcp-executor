@@ -17,9 +17,11 @@ var serveCmd = &cobra.Command{
 	Short: "Start the MCP server",
 	Long: `Start the MCP server with the specified transport mode and execution mode.
 
-The server provides two main tools:
+The server provides four main tools:
 - execute-python: Run Python code (subprocess mode by default, Docker optional)
 - execute-bash: Run bash scripts (subprocess mode by default, Docker optional)
+- execute-perl: Run Perl code (subprocess mode by default, Docker optional)
+- execute-go: Run Go code (subprocess mode by default, Docker optional)
 
 Execution modes:
 - subprocess: Run code directly on host (default, faster, less isolated)

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/ylchen07/mcp-executor/internal/logger"
@@ -40,6 +41,68 @@ func NewSubprocessBashExecutor() *SubprocessExecutor {
 			ExecutorName: "bash-subprocess",
 		},
 	}
+}
+
+func NewSubprocessPerlExecutor() *SubprocessExecutor {
+	return &SubprocessExecutor{
+		config: SubprocessConfig{
+			Binary:       "perl",
+			InstallCmd:   nil, // No cpan installation in subprocess mode for security
+			ExecutorName: "perl-subprocess",
+		},
+	}
+}
+
+// GoSubprocessExecutor is a specialized executor for Go that uses temporary files
+type GoSubprocessExecutor struct{}
+
+func NewSubprocessGoExecutor() *GoSubprocessExecutor {
+	return &GoSubprocessExecutor{}
+}
+
+func (g *GoSubprocessExecutor) Execute(ctx context.Context, code string, dependencies []string, envVars map[string]string) (string, error) {
+	logger.Debug("Starting go-subprocess execution")
+
+	if len(dependencies) > 0 {
+		logger.Debug("Skipping dependency installation for go-subprocess (not supported in subprocess mode)")
+	}
+
+	// Create a temporary directory for the Go file
+	tmpDir, err := os.MkdirTemp("", "mcp-go-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Write code to a temporary .go file
+	tmpFile := filepath.Join(tmpDir, "main.go")
+	if err := os.WriteFile(tmpFile, []byte(code), 0600); err != nil {
+		return "", fmt.Errorf("failed to write temp file: %v", err)
+	}
+
+	logger.Verbose("Executing Go code in subprocess")
+	logger.Debug("Code to execute:\n%s", code)
+
+	// Execute with go run
+	cmd := exec.CommandContext(ctx, "go", "run", tmpFile)
+
+	// Set environment variables
+	cmd.Env = os.Environ() // Start with current environment
+	for key, value := range envVars {
+		cmd.Env = append(cmd.Env, key+"="+value)
+	}
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Debug("Execution failed: %v", err)
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("go-subprocess exited with code %d: %s", exitError.ExitCode(), string(out))
+		}
+		return "", fmt.Errorf("execution failed: %v", err)
+	}
+
+	logger.Debug("Execution completed successfully, output length: %d bytes", len(out))
+	return string(out), nil
 }
 
 func (s *SubprocessExecutor) Execute(ctx context.Context, code string, dependencies []string, envVars map[string]string) (string, error) {

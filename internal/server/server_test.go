@@ -84,16 +84,16 @@ func TestNewMCPServer_ToolRegistration(t *testing.T) {
 	}
 
 	// Check for expected tools
-	expectedTools := []string{"execute-python", "execute-bash"}
+	expectedTools := []string{"execute-python", "execute-bash", "execute-perl", "execute-go"}
 	for _, expectedTool := range expectedTools {
 		if _, found := tools[expectedTool]; !found {
 			t.Errorf("Expected tool %q not found in registered tools", expectedTool)
 		}
 	}
 
-	// Should have exactly 2 tools
-	if len(tools) != 2 {
-		t.Errorf("Expected 2 tools, got %d", len(tools))
+	// Should have exactly 4 tools
+	if len(tools) != 4 {
+		t.Errorf("Expected 4 tools, got %d", len(tools))
 	}
 }
 
@@ -128,8 +128,8 @@ func TestNewMCPServer_ExecutorSelection(t *testing.T) {
 
 			// Verify tools are present
 			tools := mcpServer.ListTools()
-			if len(tools) != 2 {
-				t.Errorf("Expected 2 tools for %s mode, got %d", tt.executionMode, len(tools))
+			if len(tools) != 4 {
+				t.Errorf("Expected 4 tools for %s mode, got %d", tt.executionMode, len(tools))
 			}
 		})
 	}
@@ -150,11 +150,11 @@ func TestNewMCPServer_MultipleInstances(t *testing.T) {
 	}
 
 	// Both should have tools registered
-	if len(server1.ListTools()) != 2 {
-		t.Error("Server 1 should have 2 tools")
+	if len(server1.ListTools()) != 4 {
+		t.Error("Server 1 should have 4 tools")
 	}
-	if len(server2.ListTools()) != 2 {
-		t.Error("Server 2 should have 2 tools")
+	if len(server2.ListTools()) != 4 {
+		t.Error("Server 2 should have 4 tools")
 	}
 }
 
@@ -212,6 +212,16 @@ func TestNewMCPServer_ToolDetails(t *testing.T) {
 		t.Error("GetTool('execute-bash') should not return nil")
 	}
 
+	perlTool := mcpServer.GetTool("execute-perl")
+	if perlTool == nil {
+		t.Error("GetTool('execute-perl') should not return nil")
+	}
+
+	goTool := mcpServer.GetTool("execute-go")
+	if goTool == nil {
+		t.Error("GetTool('execute-go') should not return nil")
+	}
+
 	// Non-existent tool should return nil
 	nonExistentTool := mcpServer.GetTool("non-existent-tool")
 	if nonExistentTool != nil {
@@ -224,8 +234,12 @@ func TestExecutorInterface(t *testing.T) {
 	// Verify both executor types implement the Executor interface
 	var _ executor.Executor = executor.NewPythonExecutor()
 	var _ executor.Executor = executor.NewBashExecutor()
+	var _ executor.Executor = executor.NewPerlExecutor()
+	var _ executor.Executor = executor.NewGoExecutor()
 	var _ executor.Executor = executor.NewSubprocessPythonExecutor()
 	var _ executor.Executor = executor.NewSubprocessBashExecutor()
+	var _ executor.Executor = executor.NewSubprocessPerlExecutor()
+	var _ executor.Executor = executor.NewSubprocessGoExecutor()
 
 	// If we get here without compile errors, the interface is correctly implemented
 	t.Log("All executors correctly implement the Executor interface")

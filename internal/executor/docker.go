@@ -44,6 +44,28 @@ func NewBashExecutor() *DockerExecutor {
 	}
 }
 
+func NewPerlExecutor() *DockerExecutor {
+	return &DockerExecutor{
+		config: ExecutorConfig{
+			Image:        "perl:5.40",
+			InstallCmd:   []string{"cpanm", "--quiet", "--notest"},
+			ExecuteCmd:   []string{"perl"},
+			ExecutorName: "perl",
+		},
+	}
+}
+
+func NewGoExecutor() *DockerExecutor {
+	return &DockerExecutor{
+		config: ExecutorConfig{
+			Image:        "golang:1.23",
+			InstallCmd:   []string{"go", "get"},
+			ExecuteCmd:   []string{"go", "run", "-"},
+			ExecutorName: "go",
+		},
+	}
+}
+
 func (d *DockerExecutor) Execute(ctx context.Context, code string, dependencies []string, envVars map[string]string) (string, error) {
 	logger.Debug("Starting %s execution", d.config.ExecutorName)
 

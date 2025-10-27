@@ -23,6 +23,8 @@ func NewMCPServer(executionMode string) *server.MCPServer {
 		logger.Debug("Using Docker executors with full tool capabilities")
 		pythonExecutor := executor.NewPythonExecutor()
 		bashExecutor := executor.NewBashExecutor()
+		perlExecutor := executor.NewPerlExecutor()
+		goExecutor := executor.NewGoExecutor()
 
 		logger.Debug("Initializing Docker Python tool with module installation support")
 		pythonTool := tools.NewPythonTool(pythonExecutor)
@@ -30,14 +32,24 @@ func NewMCPServer(executionMode string) *server.MCPServer {
 		logger.Debug("Initializing Docker Bash tool with package installation support")
 		bashTool := tools.NewBashTool(bashExecutor)
 
+		logger.Debug("Initializing Docker Perl tool with module installation support")
+		perlTool := tools.NewPerlTool(perlExecutor)
+
+		logger.Debug("Initializing Docker Go tool with package installation support")
+		goTool := tools.NewGoTool(goExecutor)
+
 		logger.Debug("Registering Docker tools with MCP server")
 		mcpServer.AddTool(pythonTool.CreateTool(), pythonTool.HandleExecution)
 		mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
+		mcpServer.AddTool(perlTool.CreateTool(), perlTool.HandleExecution)
+		mcpServer.AddTool(goTool.CreateTool(), goTool.HandleExecution)
 
 	case "subprocess":
 		logger.Debug("Using subprocess executors (no dependency installation)")
 		pythonExecutor := executor.NewSubprocessPythonExecutor()
 		bashExecutor := executor.NewSubprocessBashExecutor()
+		perlExecutor := executor.NewSubprocessPerlExecutor()
+		goExecutor := executor.NewSubprocessGoExecutor()
 
 		logger.Debug("Initializing subprocess Python tool (no module installation)")
 		pythonTool := tools.NewSubprocessPythonTool(pythonExecutor)
@@ -45,20 +57,34 @@ func NewMCPServer(executionMode string) *server.MCPServer {
 		logger.Debug("Initializing subprocess Bash tool (no package installation)")
 		bashTool := tools.NewSubprocessBashTool(bashExecutor)
 
+		logger.Debug("Initializing subprocess Perl tool (no module installation)")
+		perlTool := tools.NewSubprocessPerlTool(perlExecutor)
+
+		logger.Debug("Initializing subprocess Go tool (no package installation)")
+		goTool := tools.NewSubprocessGoTool(goExecutor)
+
 		logger.Debug("Registering subprocess tools with MCP server")
 		mcpServer.AddTool(pythonTool.CreateTool(), pythonTool.HandleExecution)
 		mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
+		mcpServer.AddTool(perlTool.CreateTool(), perlTool.HandleExecution)
+		mcpServer.AddTool(goTool.CreateTool(), goTool.HandleExecution)
 
 	default:
 		logger.Debug("Unknown execution mode '%s', defaulting to subprocess", executionMode)
 		pythonExecutor := executor.NewSubprocessPythonExecutor()
 		bashExecutor := executor.NewSubprocessBashExecutor()
+		perlExecutor := executor.NewSubprocessPerlExecutor()
+		goExecutor := executor.NewSubprocessGoExecutor()
 
 		pythonTool := tools.NewSubprocessPythonTool(pythonExecutor)
 		bashTool := tools.NewSubprocessBashTool(bashExecutor)
+		perlTool := tools.NewSubprocessPerlTool(perlExecutor)
+		goTool := tools.NewSubprocessGoTool(goExecutor)
 
 		mcpServer.AddTool(pythonTool.CreateTool(), pythonTool.HandleExecution)
 		mcpServer.AddTool(bashTool.CreateTool(), bashTool.HandleExecution)
+		mcpServer.AddTool(perlTool.CreateTool(), perlTool.HandleExecution)
+		mcpServer.AddTool(goTool.CreateTool(), goTool.HandleExecution)
 	}
 
 	// Register prompts based on execution mode
