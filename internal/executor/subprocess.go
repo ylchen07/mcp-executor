@@ -62,7 +62,7 @@ func (t *TypeScriptSubprocessExecutor) Execute(ctx context.Context, code string,
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Write code to a temporary .ts file
 	tmpFile := filepath.Join(tmpDir, "index.ts")
@@ -121,7 +121,7 @@ func (g *GoSubprocessExecutor) Execute(ctx context.Context, code string, depende
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Write code to a temporary .go file
 	tmpFile := filepath.Join(tmpDir, "main.go")
