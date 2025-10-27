@@ -1,23 +1,25 @@
 # MCP Executor
 
-An MCP (Model Context Protocol) server that provides Python and Bash execution in either subprocess or isolated Docker environments. Built with Go and the Cobra CLI framework, featuring multiple transport modes, flexible execution modes, and built-in Playwright support for web automation.
+An MCP (Model Context Protocol) server that provides multi-language code execution (Python, Bash, TypeScript, and Go) in either subprocess or isolated Docker environments. Built with Go and the Cobra CLI framework, featuring multiple transport modes, flexible execution modes, and built-in Playwright support for web automation.
 
 ## Overview
 
-This project implements a robust MCP server that exposes two powerful tools: `execute-python` and `execute-bash`. These tools enable execution of Python code and bash scripts in either:
+This project implements a robust MCP server that exposes four powerful tools: `execute-python`, `execute-bash`, `execute-typescript`, and `execute-go`. These tools enable execution of code in multiple languages in either:
 
 - **Subprocess mode** (default): Fast execution directly on the host machine
 - **Docker mode**: Isolated execution in ephemeral Docker containers
 
-Perfect for data analysis, web scraping, system administration, and automation tasks with the flexibility to choose between speed (subprocess) and isolation (Docker).
+Perfect for data analysis, web scraping, system administration, automation tasks, and multi-language development with the flexibility to choose between speed (subprocess) and isolation (Docker).
 
 ## Features
 
 - ⚡ **Dual Execution Modes**: Choose between subprocess (fast) or Docker (isolated) execution
 - 🐍 **Python Execution**: Run Python code with pip package installation support
 - 🔧 **Bash Execution**: Execute shell commands and scripts
-- 🎭 **Playwright Support**: Built-in browser automation in Docker mode
-- 📦 **Dynamic Package Installation**: Install Python modules and Ubuntu packages (Docker mode only)
+- 📘 **TypeScript Execution**: Run TypeScript code with npm package installation support
+- 🔷 **Go Execution**: Run Go code with module support
+- 🎭 **Playwright Support**: Built-in browser automation in Docker mode (Python)
+- 📦 **Dynamic Package Installation**: Install packages for all languages (Docker mode only)
 - 🔄 **Triple Protocol Support**: stdio, SSE (Server-Sent Events), and HTTP transport modes
 - 🧹 **Clean Execution**: Subprocess mode or ephemeral Docker containers
 - 🛡️ **Flexible Security**: Balance between speed (subprocess) and isolation (Docker)
@@ -28,8 +30,10 @@ Perfect for data analysis, web scraping, system administration, and automation t
 ## Prerequisites
 
 - **Go 1.23.3+**: Required to build and run the server
-- **Python 3**: Required for subprocess mode (default)
-- **Bash**: Required for bash subprocess execution (usually pre-installed)
+- **Python 3**: Required for Python subprocess execution (default)
+- **Bash**: Required for Bash subprocess execution (usually pre-installed)
+- **TypeScript Runtime** (ts-node or tsx): Required for TypeScript subprocess execution
+- **Go 1.23+**: Required for Go subprocess execution
 - **Docker** (optional): Only required for Docker execution mode (`--execution-mode docker`)
 - **Internet Connection**: Required for installing dependencies and pulling Docker images (Docker mode)
 
@@ -136,7 +140,7 @@ Combine transport and execution modes with verbose logging:
 
 ## Tools
 
-The server provides two MCP tools: `execute-python` and `execute-bash`. The tool parameters vary based on the execution mode:
+The server provides four MCP tools: `execute-python`, `execute-bash`, `execute-typescript`, and `execute-go`. The tool parameters vary based on the execution mode:
 
 ### Tool: execute-python
 
@@ -249,6 +253,116 @@ Executes bash scripts in either subprocess (default) or Docker container based o
 {
   "script": "echo 'System Info:'\nuname -a\ndf -h\nfree -h",
   "packages": ""
+}
+```
+
+### Tool: execute-typescript
+
+Executes TypeScript code in either subprocess (default) or Docker container based on server's `--execution-mode` setting.
+
+**Execution Mode Differences:**
+
+- **Subprocess Mode**: Uses host's `ts-node` or `tsx` (auto-detects). **No package installation** allowed for security. Only pre-installed packages and standard library are available.
+- **Docker Mode**: Uses Node.js 22 Alpine image with `tsx` runtime and full npm install support.
+
+#### Parameters
+
+**Subprocess Mode:**
+
+| Parameter | Type   | Required | Description                                                         |
+| --------- | ------ | -------- | ------------------------------------------------------------------- |
+| `code`    | string | Yes      | TypeScript code to execute                                          |
+| `env`     | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
+
+**Docker Mode:**
+
+| Parameter  | Type   | Required | Description                                                         |
+| ---------- | ------ | -------- | ------------------------------------------------------------------- |
+| `code`     | string | Yes      | TypeScript code to execute                                          |
+| `packages` | string | No       | Comma-separated list of npm packages to install globally            |
+| `env`      | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
+
+#### Example Usage
+
+##### Basic TypeScript Execution
+
+```json
+{
+  "code": "console.log('Hello from TypeScript!');\nconst sum = (a: number, b: number) => a + b;\nconsole.log(`2 + 2 = ${sum(2, 2)}`);"
+}
+```
+
+##### With Package Installation (Docker Mode Only)
+
+> **Note**: The `packages` parameter is only available in Docker mode. Subprocess mode does not support package installation for security reasons.
+
+```json
+{
+  "code": "import axios from 'axios';\n\nconst response = await axios.get('https://api.github.com');\nconsole.log('Status:', response.status);",
+  "packages": "axios"
+}
+```
+
+##### Async/Await Example
+
+```json
+{
+  "code": "const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));\n\nconsole.log('Starting...');\nawait delay(1000);\nconsole.log('Done after 1 second!');"
+}
+```
+
+### Tool: execute-go
+
+Executes Go code in either subprocess (default) or Docker container based on server's `--execution-mode` setting.
+
+**Execution Mode Differences:**
+
+- **Subprocess Mode**: Uses host's `go` compiler with temp file creation. **No package installation** allowed for security. Only standard library and pre-installed packages are available.
+- **Docker Mode**: Uses Go 1.23 official image with full `go get` support for external packages.
+
+#### Parameters
+
+**Subprocess Mode:**
+
+| Parameter | Type   | Required | Description                                                         |
+| --------- | ------ | -------- | ------------------------------------------------------------------- |
+| `code`    | string | Yes      | Go code to execute (must include package main and func main)        |
+| `env`     | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
+
+**Docker Mode:**
+
+| Parameter  | Type   | Required | Description                                                         |
+| ---------- | ------ | -------- | ------------------------------------------------------------------- |
+| `code`     | string | Yes      | Go code to execute (must include package main and func main)        |
+| `packages` | string | No       | Comma-separated list of Go packages to install via go get           |
+| `env`      | string | No       | Comma-separated KEY=VALUE pairs injected into execution environment |
+
+#### Example Usage
+
+##### Basic Go Execution
+
+```json
+{
+  "code": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tfmt.Println(\"Hello from Go!\")\n\tsum := 2 + 2\n\tfmt.Printf(\"2 + 2 = %d\\n\", sum)\n}"
+}
+```
+
+##### With External Packages (Docker Mode Only)
+
+> **Note**: The `packages` parameter is only available in Docker mode. Subprocess mode does not support package installation for security reasons.
+
+```json
+{
+  "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"github.com/google/uuid\"\n)\n\nfunc main() {\n\tid := uuid.New()\n\tfmt.Printf(\"Generated UUID: %s\\n\", id)\n}",
+  "packages": "github.com/google/uuid"
+}
+```
+
+##### HTTP Request Example
+
+```json
+{
+  "code": "package main\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"net/http\"\n)\n\nfunc main() {\n\tresp, err := http.Get(\"https://api.github.com\")\n\tif err != nil {\n\t\tfmt.Println(\"Error:\", err)\n\t\treturn\n\t}\n\tdefer resp.Body.Close()\n\tbody, _ := io.ReadAll(resp.Body)\n\tfmt.Printf(\"Status: %d\\nBody length: %d bytes\\n\", resp.StatusCode, len(body))\n}"
 }
 ```
 
@@ -388,6 +502,8 @@ graph TB
     subgraph "Tools Layer"
         F --> G[internal/tools/python.go<br/>Docker: PythonTool<br/>Subprocess: SubprocessPythonTool]
         F --> H[internal/tools/bash.go<br/>Docker: BashTool<br/>Subprocess: SubprocessBashTool]
+        F --> TS[internal/tools/typescript.go<br/>Docker: TypeScriptTool<br/>Subprocess: SubprocessTypeScriptTool]
+        F --> GO[internal/tools/go.go<br/>Docker: GoTool<br/>Subprocess: SubprocessGoTool]
     end
 
     subgraph "Execution Layer"
@@ -395,9 +511,15 @@ graph TB
         G --> I2[internal/executor/docker.go<br/>Full package installation]
         H --> I
         H --> I2
-        I --> J[Python/Bash Subprocess<br/>Host Machine]
+        TS --> I
+        TS --> I2
+        GO --> I
+        GO --> I2
+        I --> J[Subprocess Execution<br/>Host Machine]
         I2 --> K[Python Container<br/>Playwright Image]
         I2 --> L[Bash Container<br/>Ubuntu 22.04]
+        I2 --> TSC[TypeScript Container<br/>Node.js 22 Alpine]
+        I2 --> GOC[Go Container<br/>Go 1.23]
     end
 
     subgraph "Support Layer"
@@ -437,7 +559,9 @@ graph TB
 │   │   └── server.go         # MCP server setup with executor injection
 │   └── tools/
 │       ├── python.go         # Python execution tool implementation
-│       └── bash.go           # Bash execution tool implementation
+│       ├── bash.go           # Bash execution tool implementation
+│       ├── typescript.go     # TypeScript execution tool implementation
+│       └── go.go             # Go execution tool implementation
 ```
 
 ### Key Components
@@ -449,8 +573,8 @@ graph TB
 - **Docker Executor**: Optional executor for isolated container execution (full package installation)
 - **Dependency Injection**: Server selects appropriate tools and executors based on `--execution-mode` flag
 - **Tool Separation**: Distinct tool implementations for each execution mode:
-  - **Docker Tools**: `PythonTool` and `BashTool` with `modules`/`packages` parameters
-  - **Subprocess Tools**: `SubprocessPythonTool` and `SubprocessBashTool` without installation parameters
+  - **Docker Tools**: `PythonTool`, `BashTool`, `TypeScriptTool`, and `GoTool` with dependency installation parameters
+  - **Subprocess Tools**: `SubprocessPythonTool`, `SubprocessBashTool`, `SubprocessTypeScriptTool`, and `SubprocessGoTool` without installation parameters
 - **Logger**: Centralized logging with verbose mode support
 - **Configuration**: Centralized constants and settings
 - **Makefile**: Comprehensive build, test, and development targets
@@ -472,8 +596,9 @@ graph TB
 
 - **Python Binary**: `python3`
 - **Bash Binary**: `bash`
-- **Python Packages**: ❌ Not supported - pre-installed packages only (security restriction)
-- **Bash Packages**: ❌ Not supported - pre-installed utilities only (security restriction)
+- **TypeScript Runtime**: `ts-node` or `tsx` (auto-detected)
+- **Go Binary**: `go`
+- **Package Installation**: ❌ Not supported for any language - pre-installed packages only (security restriction)
 - **Environment**: Inherits from host + custom variables
 - **Security**: Defense-in-depth prevents package installation at API and execution layers
 
@@ -481,8 +606,13 @@ graph TB
 
 - **Python Image**: `mcr.microsoft.com/playwright/python:v1.53.0-noble`
 - **Bash Image**: `ubuntu:22.04`
-- **Python Packages**: ✅ Full support - installed via `pip install` in ephemeral containers
-- **Bash Packages**: ✅ Full support - installed via `apt-get install` in ephemeral containers
+- **TypeScript Image**: `node:22-alpine`
+- **Go Image**: `golang:1.23`
+- **Package Installation**: ✅ Full support for all languages in ephemeral containers
+  - Python: `pip install`
+  - Bash: `apt-get install`
+  - TypeScript: `npm install -g`
+  - Go: `go get`
 - **Environment**: Isolated container environment + custom variables
 - **Security**: Full isolation with ephemeral containers removed after each execution
 
@@ -593,6 +723,20 @@ When using `--execution-mode docker`, the following Docker images are used:
 - **Includes**: Standard Ubuntu utilities and package manager
 - **OS**: Ubuntu 22.04 LTS
 - **Use Case**: System administration, package installation, isolated bash scripts
+
+**TypeScript Execution:**
+
+- **Image**: `node:22-alpine`
+- **Includes**: Node.js 22.x, npm, and tsx runtime (pre-installed)
+- **OS**: Alpine Linux (minimal)
+- **Use Case**: TypeScript execution, npm package usage, async/await operations
+
+**Go Execution:**
+
+- **Image**: `golang:1.23`
+- **Includes**: Go 1.23 compiler and standard library
+- **OS**: Debian-based
+- **Use Case**: Go code execution, standard library usage, external package installation
 
 ## Limitations
 
