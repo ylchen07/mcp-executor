@@ -11,8 +11,8 @@ const (
 	HTTPHost      = "http://localhost:8081"
 
 	// Docker images for code execution
-	PythonDockerImage = "mcr.microsoft.com/playwright/python:v1.53.0-noble"
-	BashDockerImage   = "ubuntu:22.04"
-	PerlDockerImage   = "perl:5.40"
-	GoDockerImage     = "golang:1.23"
+	PythonDockerImage     = "mcr.microsoft.com/playwright/python:v1.53.0-noble"
+	BashDockerImage       = "ubuntu:22.04"
+	TypeScriptDockerImage = "node:22-alpine"
+	GoDockerImage         = "golang:1.23"
 )

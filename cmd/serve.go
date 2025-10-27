@@ -20,7 +20,7 @@ var serveCmd = &cobra.Command{
 The server provides four main tools:
 - execute-python: Run Python code (subprocess mode by default, Docker optional)
 - execute-bash: Run bash scripts (subprocess mode by default, Docker optional)
-- execute-perl: Run Perl code (subprocess mode by default, Docker optional)
+- execute-typescript: Run TypeScript code (subprocess mode by default, Docker optional)
 - execute-go: Run Go code (subprocess mode by default, Docker optional)
 
 Execution modes:

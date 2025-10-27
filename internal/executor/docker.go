@@ -44,13 +44,13 @@ func NewBashExecutor() *DockerExecutor {
 	}
 }
 
-func NewPerlExecutor() *DockerExecutor {
+func NewTypeScriptExecutor() *DockerExecutor {
 	return &DockerExecutor{
 		config: ExecutorConfig{
-			Image:        "perl:5.40",
-			InstallCmd:   []string{"cpanm", "--quiet", "--notest"},
-			ExecuteCmd:   []string{"perl"},
-			ExecutorName: "perl",
+			Image:        "node:22-alpine",
+			InstallCmd:   []string{"npm", "install", "-g"},
+			ExecuteCmd:   []string{"tsx"},
+			ExecutorName: "typescript",
 		},
 	}
 }

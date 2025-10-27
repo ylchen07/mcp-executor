@@ -43,14 +43,63 @@ func NewSubprocessBashExecutor() *SubprocessExecutor {
 	}
 }
 
-func NewSubprocessPerlExecutor() *SubprocessExecutor {
-	return &SubprocessExecutor{
-		config: SubprocessConfig{
-			Binary:       "perl",
-			InstallCmd:   nil, // No cpan installation in subprocess mode for security
-			ExecutorName: "perl-subprocess",
-		},
+// TypeScriptSubprocessExecutor is a specialized executor for TypeScript using ts-node
+type TypeScriptSubprocessExecutor struct{}
+
+func NewSubprocessTypeScriptExecutor() *TypeScriptSubprocessExecutor {
+	return &TypeScriptSubprocessExecutor{}
+}
+
+func (t *TypeScriptSubprocessExecutor) Execute(ctx context.Context, code string, dependencies []string, envVars map[string]string) (string, error) {
+	logger.Debug("Starting typescript-subprocess execution")
+
+	if len(dependencies) > 0 {
+		logger.Debug("Skipping dependency installation for typescript-subprocess (not supported in subprocess mode)")
 	}
+
+	// Create a temporary directory for the TypeScript file
+	tmpDir, err := os.MkdirTemp("", "mcp-ts-*")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Write code to a temporary .ts file
+	tmpFile := filepath.Join(tmpDir, "index.ts")
+	if err := os.WriteFile(tmpFile, []byte(code), 0600); err != nil {
+		return "", fmt.Errorf("failed to write temp file: %v", err)
+	}
+
+	logger.Verbose("Executing TypeScript code in subprocess")
+	logger.Debug("Code to execute:\n%s", code)
+
+	// Execute with ts-node (falls back to tsx if ts-node not available)
+	var cmd *exec.Cmd
+	if _, err := exec.LookPath("ts-node"); err == nil {
+		cmd = exec.CommandContext(ctx, "ts-node", tmpFile)
+	} else if _, err := exec.LookPath("tsx"); err == nil {
+		cmd = exec.CommandContext(ctx, "tsx", tmpFile)
+	} else {
+		return "", fmt.Errorf("neither ts-node nor tsx found on system - please install one to run TypeScript")
+	}
+
+	// Set environment variables
+	cmd.Env = os.Environ() // Start with current environment
+	for key, value := range envVars {
+		cmd.Env = append(cmd.Env, key+"="+value)
+	}
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		logger.Debug("Execution failed: %v", err)
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("typescript-subprocess exited with code %d: %s", exitError.ExitCode(), string(out))
+		}
+		return "", fmt.Errorf("execution failed: %v", err)
+	}
+
+	logger.Debug("Execution completed successfully, output length: %d bytes", len(out))
+	return string(out), nil
 }
 
 // GoSubprocessExecutor is a specialized executor for Go that uses temporary files

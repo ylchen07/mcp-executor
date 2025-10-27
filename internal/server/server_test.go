@@ -84,7 +84,7 @@ func TestNewMCPServer_ToolRegistration(t *testing.T) {
 	}
 
 	// Check for expected tools
-	expectedTools := []string{"execute-python", "execute-bash", "execute-perl", "execute-go"}
+	expectedTools := []string{"execute-python", "execute-bash", "execute-typescript", "execute-go"}
 	for _, expectedTool := range expectedTools {
 		if _, found := tools[expectedTool]; !found {
 			t.Errorf("Expected tool %q not found in registered tools", expectedTool)
@@ -212,9 +212,9 @@ func TestNewMCPServer_ToolDetails(t *testing.T) {
 		t.Error("GetTool('execute-bash') should not return nil")
 	}
 
-	perlTool := mcpServer.GetTool("execute-perl")
-	if perlTool == nil {
-		t.Error("GetTool('execute-perl') should not return nil")
+	typescriptTool := mcpServer.GetTool("execute-typescript")
+	if typescriptTool == nil {
+		t.Error("GetTool('execute-typescript') should not return nil")
 	}
 
 	goTool := mcpServer.GetTool("execute-go")
@@ -234,11 +234,11 @@ func TestExecutorInterface(t *testing.T) {
 	// Verify both executor types implement the Executor interface
 	var _ executor.Executor = executor.NewPythonExecutor()
 	var _ executor.Executor = executor.NewBashExecutor()
-	var _ executor.Executor = executor.NewPerlExecutor()
+	var _ executor.Executor = executor.NewTypeScriptExecutor()
 	var _ executor.Executor = executor.NewGoExecutor()
 	var _ executor.Executor = executor.NewSubprocessPythonExecutor()
 	var _ executor.Executor = executor.NewSubprocessBashExecutor()
-	var _ executor.Executor = executor.NewSubprocessPerlExecutor()
+	var _ executor.Executor = executor.NewSubprocessTypeScriptExecutor()
 	var _ executor.Executor = executor.NewSubprocessGoExecutor()
 
 	// If we get here without compile errors, the interface is correctly implemented
