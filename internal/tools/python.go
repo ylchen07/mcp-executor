@@ -22,11 +22,14 @@ func NewPythonTool(exec executor.Executor) *PythonTool {
 }
 
 func (p *PythonTool) CreateTool() mcp.Tool {
+	description := `Execute Python code in an isolated Docker container. Playwright and headless browsers are pre-installed for web scraping.
+External modules can be dynamically installed. Use this tool when you need real-time information or require external Python packages.
+Only output printed to stdout or stderr is returned so ALWAYS use print statements!
+Note: Code runs in ephemeral containers - modules and state do NOT persist between executions.`
+
 	return mcp.NewTool(
 		"execute-python",
-		mcp.WithDescription(
-			"Execute Python code in an isolated Docker container. Playwright and headless browsers are pre-installed for web scraping. External modules can be dynamically installed. Use this tool when you need real-time information or require external Python packages. Only output printed to stdout or stderr is returned so ALWAYS use print statements! Note: Code runs in ephemeral containers - modules and state do NOT persist between executions.",
-		),
+		mcp.WithDescription(description),
 		mcp.WithString(
 			"code",
 			mcp.Description("The Python code to execute"),
@@ -34,15 +37,13 @@ func (p *PythonTool) CreateTool() mcp.Tool {
 		),
 		mcp.WithString(
 			"modules",
-			mcp.Description(
-				"Comma-separated list of Python modules to install (e.g., 'requests,beautifulsoup4,pandas'). Modules are installed automatically via pip before code execution.",
-			),
+			mcp.Description(`Comma-separated list of Python modules to install (e.g., 'requests,beautifulsoup4,pandas').
+Modules are installed automatically via pip before code execution.`),
 		),
 		mcp.WithString(
 			"env",
-			mcp.Description(
-				"Comma-separated list of environment variables in KEY=VALUE format (e.g., 'API_KEY=secret,DEBUG=true'). These will be available to your Python code.",
-			),
+			mcp.Description(`Comma-separated list of environment variables in KEY=VALUE format (e.g., 'API_KEY=secret,DEBUG=true').
+These will be available to your Python code.`),
 		),
 	)
 }
@@ -102,11 +103,14 @@ func NewSubprocessPythonTool(exec executor.Executor) *SubprocessPythonTool {
 }
 
 func (p *SubprocessPythonTool) CreateTool() mcp.Tool {
+	description := `Execute Python code directly on the host system. Only standard library and pre-installed packages are available.
+Use this tool when you need real-time information and don't require external dependencies.
+Only output printed to stdout or stderr is returned so ALWAYS use print statements!
+Note: Code runs on the host system with user permissions.`
+
 	return mcp.NewTool(
 		"execute-python",
-		mcp.WithDescription(
-			"Execute Python code directly on the host system. Only standard library and pre-installed packages are available. Use this tool when you need real-time information and don't require external dependencies. Only output printed to stdout or stderr is returned so ALWAYS use print statements! Note: Code runs on the host system with user permissions.",
-		),
+		mcp.WithDescription(description),
 		mcp.WithString(
 			"code",
 			mcp.Description("The Python code to execute"),
@@ -114,9 +118,8 @@ func (p *SubprocessPythonTool) CreateTool() mcp.Tool {
 		),
 		mcp.WithString(
 			"env",
-			mcp.Description(
-				"Comma-separated list of environment variables in KEY=VALUE format (e.g., 'API_KEY=secret,DEBUG=true'). These will be available to your Python code.",
-			),
+			mcp.Description(`Comma-separated list of environment variables in KEY=VALUE format (e.g., 'API_KEY=secret,DEBUG=true').
+These will be available to your Python code.`),
 		),
 	)
 }
