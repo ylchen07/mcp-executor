@@ -81,7 +81,7 @@ func TestPythonTool_CreateTool(t *testing.T) {
 func TestPythonTool_HandleExecution(t *testing.T) {
 	tests := []struct {
 		name         string
-		params       map[string]interface{}
+		params       map[string]any
 		mockOutput   string
 		mockError    error
 		wantErr      bool
@@ -91,7 +91,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 	}{
 		{
 			name: "simple code execution",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": `print("hello")`,
 			},
 			mockOutput: "hello\n",
@@ -102,7 +102,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with single module",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code":    `import requests`,
 				"modules": "requests",
 			},
@@ -114,7 +114,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with multiple modules",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code":    `import requests, numpy`,
 				"modules": "requests,numpy,pandas",
 			},
@@ -126,7 +126,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with modules containing spaces",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code":    `import requests`,
 				"modules": "requests , numpy , pandas",
 			},
@@ -138,7 +138,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with single env var",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": `import os; print(os.getenv("API_KEY"))`,
 				"env":  "API_KEY=secret123",
 			},
@@ -152,7 +152,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with multiple env vars",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": `import os`,
 				"env":  "API_KEY=secret123,DEBUG=true,PORT=8080",
 			},
@@ -168,7 +168,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with env vars containing spaces",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": `import os`,
 				"env":  "API_KEY=secret123 , DEBUG=true , PORT=8080",
 			},
@@ -184,7 +184,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with env var containing equals sign in value",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": `import os`,
 				"env":  "CONNECTION_STRING=server=localhost;user=admin",
 			},
@@ -198,7 +198,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with modules and env vars",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code":    `import requests`,
 				"modules": "requests,numpy",
 				"env":     "API_KEY=secret,DEBUG=true",
@@ -215,7 +215,7 @@ func TestPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "empty code parameter",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": "",
 			},
 			mockOutput: "",
@@ -296,7 +296,7 @@ func TestPythonTool_HandleExecution_MissingCode(t *testing.T) {
 	request := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name:      "execute-python",
-			Arguments: map[string]interface{}{},
+			Arguments: map[string]any{},
 		},
 	}
 
@@ -327,7 +327,7 @@ func TestPythonTool_HandleExecution_ExecutorError(t *testing.T) {
 	request := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "execute-python",
-			Arguments: map[string]interface{}{
+			Arguments: map[string]any{
 				"code": `print("test")`,
 			},
 		},
@@ -354,7 +354,7 @@ func TestPythonTool_HandleExecution_EmptyModules(t *testing.T) {
 	request := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "execute-python",
-			Arguments: map[string]interface{}{
+			Arguments: map[string]any{
 				"code":    `print("test")`,
 				"modules": "",
 			},
@@ -379,7 +379,7 @@ func TestPythonTool_HandleExecution_EmptyEnv(t *testing.T) {
 	request := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "execute-python",
-			Arguments: map[string]interface{}{
+			Arguments: map[string]any{
 				"code": `print("test")`,
 				"env":  "",
 			},
@@ -468,7 +468,7 @@ func TestSubprocessPythonTool_CreateTool(t *testing.T) {
 func TestSubprocessPythonTool_HandleExecution(t *testing.T) {
 	tests := []struct {
 		name         string
-		params       map[string]interface{}
+		params       map[string]any
 		mockOutput   string
 		mockError    error
 		wantErr      bool
@@ -478,7 +478,7 @@ func TestSubprocessPythonTool_HandleExecution(t *testing.T) {
 	}{
 		{
 			name: "simple code execution",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": `print("hello")`,
 			},
 			mockOutput: "hello\n",
@@ -489,7 +489,7 @@ func TestSubprocessPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "with environment variables",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": `import os; print(os.getenv("API_KEY"))`,
 				"env":  "API_KEY=secret123,DEBUG=true",
 			},
@@ -505,7 +505,7 @@ func TestSubprocessPythonTool_HandleExecution(t *testing.T) {
 		},
 		{
 			name: "empty code parameter",
-			params: map[string]interface{}{
+			params: map[string]any{
 				"code": "",
 			},
 			mockOutput: "",
@@ -578,7 +578,7 @@ func TestSubprocessPythonTool_NoDependencies(t *testing.T) {
 	request := mcp.CallToolRequest{
 		Params: mcp.CallToolParams{
 			Name: "execute-python",
-			Arguments: map[string]interface{}{
+			Arguments: map[string]any{
 				"code": `print("test")`,
 			},
 		},

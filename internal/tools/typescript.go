@@ -69,8 +69,8 @@ func (t *TypeScriptTool) HandleExecution(
 	// Parse environment variables
 	envVars := make(map[string]string)
 	if envStr := request.GetString("env", ""); envStr != "" {
-		envPairs := strings.Split(envStr, ",")
-		for _, pair := range envPairs {
+		envPairs := strings.SplitSeq(envStr, ",")
+		for pair := range envPairs {
 			pair = strings.TrimSpace(pair)
 			if equalIndex := strings.Index(pair, "="); equalIndex > 0 {
 				key := strings.TrimSpace(pair[:equalIndex])
@@ -139,8 +139,8 @@ func (t *SubprocessTypeScriptTool) HandleExecution(
 	// Parse environment variables
 	envVars := make(map[string]string)
 	if envStr := request.GetString("env", ""); envStr != "" {
-		envPairs := strings.Split(envStr, ",")
-		for _, pair := range envPairs {
+		envPairs := strings.SplitSeq(envStr, ",")
+		for pair := range envPairs {
 			pair = strings.TrimSpace(pair)
 			if equalIndex := strings.Index(pair, "="); equalIndex > 0 {
 				key := strings.TrimSpace(pair[:equalIndex])
