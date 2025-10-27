@@ -73,14 +73,16 @@ func (t *TypeScriptSubprocessExecutor) Execute(ctx context.Context, code string,
 	logger.Verbose("Executing TypeScript code in subprocess")
 	logger.Debug("Code to execute:\n%s", code)
 
-	// Execute with ts-node (falls back to tsx if ts-node not available)
+	// Execute with ts-node (falls back to tsx, then npx tsx if not available)
 	var cmd *exec.Cmd
 	if _, err := exec.LookPath("ts-node"); err == nil {
 		cmd = exec.CommandContext(ctx, "ts-node", tmpFile)
 	} else if _, err := exec.LookPath("tsx"); err == nil {
 		cmd = exec.CommandContext(ctx, "tsx", tmpFile)
+	} else if _, err := exec.LookPath("npx"); err == nil {
+		cmd = exec.CommandContext(ctx, "npx", "tsx", tmpFile)
 	} else {
-		return "", fmt.Errorf("neither ts-node nor tsx found on system - please install one to run TypeScript")
+		return "", fmt.Errorf("neither ts-node, tsx, nor npx found on system - please install one to run TypeScript")
 	}
 
 	// Set environment variables
